@@ -1,0 +1,6 @@
+This directory must contain the needed attenuation data for the elements/componds
+used in the beamhardening set up. These include the X-ray target (e.g. W.txt), the filter
+materials (e.g. Al.txt, Cu.txt), the specimen material and the detector material (e.g. CsI.txt).
+Values have been obtained from the xcom program and the appropriate data column extracted
+to simplify reading. Data resolution of 0.5KeV steps is assumed through out (using the values
+in grid.txt). Currently A maximum energy of 150KeV is assumed though this can be increased.
