@@ -543,58 +543,10 @@ class fitData:
         #plt.show()
         return res
 
-    def objFun(self,x):
-        """ the function to minimize """
-        # get the 3 widths: target(e.g. W), detector(e.g. CsI), global filter(e.g. Cu)
-        # target and detector widths depend on line number, filter is a global value
-        # for flexiblity all 3 are dimesion by nlines
-        tw,dw,fw = self.calcWidths(x,self.nlines)
-        sumSq = 0.
-        tarAtt = self.carCal.targetAtten
-        xe = self.carCal.spec.getE()
-        se = self.carCal.spec.getS()
-        #for sample in range(self.carInfo.numSamples):
-        for line in range(self.nlines):
-            # compute filter attenuation and hence i0 as signal level with no sample for this line
-            attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)]
-            attSum = np.zeros(len(xe))
-            for filt in range(self.carCal.filterCount):
-                if filt == self.varFilter:
-                    fwid = fw[line]
-                else:
-                    fwid = self.carCal.filterWidth[filt]
-                attSum = attSum + fwid*self.carCal.filterAtten[filt].getMu()[:len(xe)]
-            # this is the key integral done as a simple sum. Can ignore width of each value
-            # as constant energy steps, so cancels in I/I0
-            at_se = se*np.exp(-attSum-tarAtt.getMu()[:len(xe)]*tw[line])*xe*(1-np.exp(-attDet))
-            i0 = np.sum(at_se)
-            count_zero = 0
-            #
-            #for line in range(nlines):
-            for sample in range(self.carInfo.numSamples-1):
-                widSam = self.carInfo.sampWidth[sample]
-                if sample < self.carInfo.numSamples-1:
-                    attSam = widSam*self.carInfo.filterAtt[sample].getMu()[:len(xe)]
-                else:
-                    attSam = np.ones(len(xe))
-                #attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)] #csiAtten.getMu()[0:me-1]
-                at_se_sample = at_se * np.exp(-attSam)
-                i_sample = np.sum(at_se_sample)
-                if i0==0. and self.verbose:
-                    print "warn: i0 zero at ",line
-                    i0=1.
-                if i_sample <= 0:
-                    count_zero = count_zero+1
-                #sumSq = sumSq + ( (i_sample/i0) - self.carCal.getAvAtten(line,sample) ) ** 2
-                sumSq = sumSq + ( np.log(i0/i_sample) - self.carCal.getAvAtten(line,sample) ) ** 2
-                self.atten[sample,line] = np.log(i0/i_sample)
-                #
-        print "tw,dw,fw,sumsq: ",tw[0],dw[0],fw[0],sumSq
-        return sumSq
-
     def objFunSq(self,x):
-        """ the function to minimize """
-        # get the 3 widths: target(e.g. W), detector(e.g. CsI), global filter(e.g. Cu)
+        """ The function to minimize; returns the squared error for every point on each
+            selected line  """
+        # Get the 3 widths: target(e.g. W), detector(e.g. CsI), global filter(e.g. Cu)
         # target and detector widths depend on line number, filter is a global value
         # for flexiblity all 3 are dimesioned by nlines
         tw,dw,fw = self.calcWidths(x,self.nlines)
@@ -603,7 +555,7 @@ class fitData:
         tarAtt = self.carCal.targetAtten
         xe = self.carCal.spec.getE()
         se = self.carCal.spec.getS()
-        #for sample in range(nsamples):
+        #
         for line in range(self.nlines):
             # compute filter attenuation and hence i0 as signal level with no sample for this line
             attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)]
@@ -622,7 +574,6 @@ class fitData:
             at_se_finite = at_se[np.logical_not(np.isnan(at_se))]
             i0 = np.sum(at_se_finite)
             #
-            #for line in range(nlines):
             for sample in range(nsamples-1):
                 widSam = self.carInfo.sampWidth[sample]
                 if sample < nsamples-1:
@@ -632,8 +583,7 @@ class fitData:
                 #attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)] #csiAtten.getMu()[0:me-1]
                 at_se_sample = at_se * np.exp(-attSam)
                 #
-                # remove nan's - why are nan's present? exp overflow gives inf, multiply by 0 gives nan
-                # in most cases nans are OK to ignore.
+                # remove nan's - see above
                 at_se_sample_finite = at_se_sample[np.logical_not(np.isnan(at_se_sample))]
                 i_sample = np.sum(at_se_sample_finite)
                 if i0==0. and self.verbose:
@@ -648,4 +598,6 @@ class fitData:
                 self.atten[sample,line] = np.log(i0/i_sample)
         if self.verbose:
             print "tw,dw,fw,sumSq: ",tw[0],dw[0],fw[0],np.sum(ans)
+        #
+        # return vector of squared errors: length=samples*lines
         return ans
