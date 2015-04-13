@@ -1,0 +1,98 @@
+
+runCarouselFit.py: fitting for carousel calibration data
+
+
+1. Set up python environment
+
+on scarf must first do:
+
+  module load python278/matplotlib/1.4.2
+
+On vishighmem, development machine:
+
+  module load python/anaconda
+
+On Windows should install Anaconda python distribution (or similar, e.g. enthought).
+
+2. Running the test case:
+
+Goto the test directory which should contain the required subdirs:
+ spectra/
+ carouselData/
+ xcom/
+
+Then run the command:
+
+  python ../src/runCarouselFit.py
+
+at the "cmd:" prompt then type:
+
+  load carouselData/carousel0.def carouselData/run001.data
+
+which should load the carousel definition data and the run calibration data.
+
+To view the calibation images use the command:
+
+  showimg
+
+This gives a plot of the loaded image data in a 3x3 grid if 9 images; close window to continue.
+
+The current set of commands are:
+
+   load - as above
+   help - list of cmds
+   showimg - plot image data if loaded for each sample
+   vary    - show or set the polynomial order of each fittable parameter
+   calcatt -  not implemented
+   showspec - not implemented
+   showatt  - not implemented
+   setfilters - not implemented
+   quit - exit
+   fitatt - perform fit; requires parameters <nlines> <Wtungsten> <log(Wcsi)> <Wcu>
+   debug  - toggle debug mode on or off - fit drops into python debugger, type c to continue
+   showconf - prints number of filters and for each mat/width/den/fittable and detector/source data
+   setwidth - set (or if no arg print) the width used in the carousel - i.e. the amount of data to be used,
+              as in the dotted lines shown in showimg
+
+To perform a fit on the first line of data:
+
+   fitatt 1 .01 -6 .01
+
+The first parameter in the number of lines to treat, 1 in this case. The remaining 3 parameters
+are the initial guesses to use for the base parameters:
+  Wt      - Additional tungsten filtering in target
+  log(Wd) - Log of effective width of CsI detector
+  Wf      - Effective width of Cu filter
+
+Note that the second parameter is forced to be positive by working with the log value.
+Physically this is sensible, though this method of limiting the parameter may be suboptimal
+from a numerical view point.
+There may be grounds to allow the width of the tungsten filter to be slightly negative to
+compensate for an initial spectrum that includes more tungsten self filtering than is actually
+the case. However the negative value that is found by fitting to the test data distorts
+the spectra in a way that suggests the model is not adequate.
+
+The initial guess is very important and it is easy to get a poor solution using a poor initial
+guess.
+
+To fit to a wider range of lines, e.g. 600, use a command like:
+
+   fitatt 600 .01 -6 .01
+
+This will assume Wt, Wd and Wf are the same for every line, which does not give a good fit.
+Each can be allowed to vary as a polynomial in the line number using the "vary" command.
+E.g. to allow each to vary in quadratic form use:
+
+   vary detector 2
+   vary target 2
+   vary filter 2
+   fitatt 600 .01 -6 .01
+
+Note that intial guesses are only needed for the zero order parameters and the higher order
+terms are started as zero.
+The fitting time increases with the number of variables and on the test data  it appears there
+is little gain in going beyond 2nd order in any variable.
+In the IDL version the Cu filter was treated as a global constant ("vary filter 0") while the
+other 2 parameters were treated individually for each line. This case is not allowed for in the
+current code, but it is felt that a continuous function for the variation in the detector and
+target thichknesses is more reasonable than line by line values.
