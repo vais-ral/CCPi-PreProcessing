@@ -98,11 +98,11 @@ def showAtt(string):
         print "samp: ",samp
         defline=400
         if samp > -1 and samp < carouselCal.samples:
-             z = carouselCal.getImage(samp)
-             plt.plot(z[defline,:])
-             plt.draw()
-             plt.show()
-             return
+            z = carouselCal.getImage(samp)
+            plt.plot(z[defline,:])
+            plt.draw()
+            plt.show()
+            return
     print "syntax: showatt n"
     print "where n is the carousel data number, max=",carouselCal.samples
 
@@ -120,9 +120,9 @@ def setFilters(string):
                     return
                 for i in range(carouselCal.filterCount):
                     if carouselCal.filterMaterial[i] == mat:
-                         carouselCal.filterWidth[i] = val
-                         print "set ",mat," filter width to ",val
-                         return
+                        carouselCal.filterWidth[i] = val
+                        print "set ",mat," filter width to ",val
+                        return
             else:
                 print "filter, width:"
                 for i in range(carouselCal.filterCount):
