@@ -32,6 +32,11 @@ at the "cmd:" prompt then type:
 
 which should load the carousel definition data and the run calibration data.
 
+To set the correction material (the one to for which attenuation correction will be
+calculated) do:
+
+  setcormat CaHydro 45.
+
 To view the calibation images use the command:
 
   showimg

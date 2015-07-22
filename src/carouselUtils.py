@@ -120,7 +120,8 @@ class materialAtt:
         self.mu = None
         self.energy = None
         self.valid = False
-        self.readFile(formula, density)
+        if len(formula) != 0:
+            self.readFile(formula, density)
 
     def readFile(self, formula, density):
         """ load the mu data for this material from a simple ascii file in ./xcom
@@ -150,6 +151,21 @@ class materialAtt:
     def getMaxEnergy(self):
         """ highest energy value recorded"""
         return self.energy[-1]
+
+    def getMuByE(self,energyVal):
+        """ return attenuation for the given energy """
+        if energyVal<0:
+            print "error: bad value in getMuByE"
+            return -1.
+        for i in range(len(self.energy)):
+            if energyVal >= self.energy[i]:
+                if energyVal == self.energy[i]:
+                    return(self.mu[i])
+                else:
+                    frac = (energyVal-self.energy[i-1])/(self.energy[i]-self.energy[i-1])
+                    muVal = self.mu[i-1]+(self.mu[i]-self.mu[i-1])*frac
+        print "error: failed to match energy in getMuByE"
+        return -1.
 
     def isValid(self):
         """ if object ok"""
@@ -450,6 +466,7 @@ class fitData:
         self.vary_target=1  #3
         self.vary_detector=1  #3
         self.vary_filter=0
+        self.vary_energy=-1
         # since there may be several filters, define which which should vary
         self.vary_filter_name="Cu"
         self.verbose = False
@@ -464,7 +481,7 @@ class fitData:
         if self.varFilter==-1:
             print "** can't find fit filter: ", defMat
             self.isValid = False
-        self.atten = np.zeros([self.carInfo.getSamples(),self.carCal.lines])
+        self.atten = np.zeros([self.carCal.lines,self.carInfo.getSamples()])
         #if len([m for m in carCal.filterMaterial if defMat in m]) > 0 :
         #    self.defMat=defMat
         #    self.defFilter='global'
@@ -493,7 +510,7 @@ class fitData:
         atsum = np.sum(at)
         return atsum
             
-    def calcWidths(self,x0,nlines):
+    def calcWidths(self,x0,nlines,xe):
         """ simple function to return the 3 widths for the target,
             the detector and the filter from the set of fitting
             variables. Each is assumed to be a polnomial of some
@@ -503,7 +520,8 @@ class fitData:
         nt=self.vary_target+1
         nd=self.vary_detector+1
         nf=self.vary_filter+1
-        if len(x0)<nt+nd+nf:
+        ne=self.vary_energy+1
+        if len(x0)<nt+nd+nf+ne:
             print "** calcWidthd called with too few values in x0"
             return
         # Polynomial expressions: highest order term is first in the array.
@@ -513,7 +531,11 @@ class fitData:
         #dwidth=np.polyval(x0[nt+nd-1:nt:-1],lines)
         dwidth = np.exp( dwidth ) # force >0 by working in log space
         fwidth=np.polyval(x0[nt+nd:nt+nd+nf],lines)
-        return twidth,dwidth,fwidth
+        if ne>0:
+            ecoeffs = xe + xe*xe*np.polyval(x0[nt+nd+nf:],xe)
+        else:
+            ecoeffs = xe
+        return twidth,dwidth,fwidth,ecoeffs
 
     def dofit(self,nlines,xin):
         """ perform fit """
@@ -532,12 +554,12 @@ class fitData:
         res = leastsq(self.objFunSq, x, full_output = True)
         #for field, val in  leastsq(self.objFunSq, x, full_output = True).items():
         #    print "field=",field," value=",value
-        print "atten=",self.atten[:,0]
+        print "atten=",self.atten[0,:]
         expt = np.zeros(10)
         for i in range(9):
              expt[i] = self.carCal.getAvAtten(0,i)
         print "expt=",expt
-        #plt.plot(self.atten[:,0])
+        #plt.plot(self.atten[0,:])
         #plt.plot(expt)
         #plt.draw()
         #plt.show()
@@ -549,11 +571,11 @@ class fitData:
         # Get the 3 widths: target(e.g. W), detector(e.g. CsI), global filter(e.g. Cu)
         # target and detector widths depend on line number, filter is a global value
         # for flexiblity all 3 are dimesioned by nlines
-        tw,dw,fw = self.calcWidths(x,self.nlines)
+        xe = self.carCal.spec.getE()
+        tw,dw,fw,ec = self.calcWidths(x,self.nlines,xe)
         nsamples = self.carInfo.numSamples
         ans = np.zeros(nsamples*self.nlines)
         tarAtt = self.carCal.targetAtten
-        xe = self.carCal.spec.getE()
         se = self.carCal.spec.getS()
         #
         for line in range(self.nlines):
@@ -568,7 +590,7 @@ class fitData:
                 attSum = attSum + fwid*self.carCal.filterAtten[filt].getMu()[:len(xe)]
             # this is the key integral done as a simple sum. Can ignore width of each value
             # as constant energy steps, so cancels in I/I0
-            at_se = se*np.exp(-attSum-tarAtt.getMu()[:len(xe)]*tw[line])*xe*(1-np.exp(-attDet))
+            at_se = se*np.exp(-attSum-tarAtt.getMu()[:len(xe)]*tw[line])*ec*(1-np.exp(-attDet))
             # remove nan's - why are nan's present? exp overflow gives inf, multiply by 0 gives nan
             # in most cases nans are OK to ignore.
             at_se_finite = at_se[np.logical_not(np.isnan(at_se))]
@@ -595,9 +617,92 @@ class fitData:
                     print "i_sample<0",at_se_sample[:8]
                 #sumSq = sumSq + ( (i_sample/i0) - self.carCal.getAvAtten(line,sample) ) ** 2
                 ans[line*nsamples+sample] = ( np.log(i0/i_sample) - self.carCal.getAvAtten(line,sample) ) ** 2
-                self.atten[sample,line] = np.log(i0/i_sample)
+                self.atten[line,sample] = np.log(i0/i_sample)
         if self.verbose:
             print "tw,dw,fw,sumSq: ",tw[0],dw[0],fw[0],np.sum(ans)
         #
         # return vector of squared errors: length=samples*lines
         return ans
+
+    def linesPolyFit(self,soln,corMat,corEn,npoints,attrange):
+        """ Function to calculate the attenuation over "npoints" for attenuation up to "attrange" for each line.
+            Uses the fitted parameters for attenuation in "soln". Having calculated apparent attenuation for the correction
+            material "corMat", map the observed attenuation to the true attenuation at the corEn energy. Then fit a
+            polynomial to the data and save the coefficients.
+            """
+        # Get the 3 widths: target(e.g. W), detector(e.g. CsI), global filter(e.g. Cu)
+        # target and detector widths depend on line number, filter is a global value
+        # for flexiblity all 3 are dimesioned by nlines. Also the energy parameter, if fitted.
+        xe = self.carCal.spec.getE()
+        tw,dw,fw,ec = self.calcWidths(soln,self.nlines,xe)
+        #nsamples = self.carInfo.numSamples
+        # allocate space to store all calculated points and polynomials fitted to them
+        ans = np.zeros((npoints+1)*self.nlines)
+        odpoly = 8
+        fitdata = np.zeros(odpoly*self.nlines)
+        #
+        # find the actual attenuation of the correction material at the correction energy
+        corrAtt = corMat.getMuByE(corEn)
+        
+        tarAtt = self.carCal.targetAtten
+        se = self.carCal.spec.getS()
+
+        # generate points to evaluate attenuation at.
+        mulist = np.arange(npoints+1,dtype='float')*attrange/(npoints*corMat.getMuByE(corEn))
+        #
+        # for each line generate npoints values of attenuation from fit data
+        #
+        for line in range(self.nlines):
+            # compute filter attenuation and hence i0 as signal level with no sample for this line
+            attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)]
+            attSum = np.zeros(len(xe))
+            for filt in range(self.carCal.filterCount):
+                if filt == self.varFilter:
+                    fwid = fw[line]
+                else:
+                    fwid = self.carCal.filterWidth[filt]
+                attSum = attSum + fwid*self.carCal.filterAtten[filt].getMu()[:len(xe)]
+            # this is the key integral done as a simple sum. Can ignore width of each value
+            # as constant energy steps, so cancels in I/I0
+            at_se = se*np.exp(-attSum-tarAtt.getMu()[:len(xe)]*tw[line])*ec*(1-np.exp(-attDet))
+            # remove nan's - why are nan's present? exp overflow gives inf, multiply by 0 gives nan
+            # in most cases nans are OK to ignore.
+            at_se_finite = at_se[np.logical_not(np.isnan(at_se))]
+            i0 = np.sum(at_se_finite)
+            #
+            count = 0
+            for muwid in mulist:
+                attSam = muwid*corMat.getMu()[:len(xe)]
+                #widSam = self.carInfo.sampWidth[sample]
+                #if sample < nsamples-1:
+                #    attSam = widSam*self.carInfo.filterAtt[sample].getMu()[:len(xe)]
+                #else:
+                #    attSam = np.ones(len(xe))
+                #attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)] #csiAtten.getMu()[0:me-1]
+                at_se_sample = at_se * np.exp(-attSam)
+                #
+                # remove nan's - see above
+                #  should not be needed here if fit is OK
+                at_se_sample_finite = at_se_sample[np.logical_not(np.isnan(at_se_sample))]
+                i_sample = np.sum(at_se_sample_finite)
+                if i0==0. and self.verbose:
+                    print "warn: i0 zero at ",line
+                    i0=1.
+                if i_sample == 0 and self.verbose:
+                    print "i_sample=0"
+                if i_sample < 0. and self.verbose:
+                    print "i_sample<0",at_se_sample[:8]
+                #sumSq = sumSq + ( (i_sample/i0) - self.carCal.getAvAtten(line,sample) ) ** 2
+                ans[line*npoints+count] = np.log(i0/i_sample)
+                count = count+1
+        if self.verbose:
+            print "tw,dw,fw,sumSq: ",tw[0],dw[0],fw[0],np.sum(ans)
+        #
+        # following carousel.pro, ans is the apparent attenuation or the x-axis of our correction
+        # graph. the y-axis should be the actual attenuation at monochromatic energy Ecor for the
+        # correction material. Since the density of the correction material is unknown, which is the
+        # main point of this code, width and density are not used here. For fitting of a polynomial
+        # through (0,0) can divide y values by x values, ignoring origin (first point in this case).
+        #
+        ans2 = mulist*corMat.getMuByE(corEn)
+        return ans,ans2

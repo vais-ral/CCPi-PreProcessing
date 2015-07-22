@@ -148,9 +148,10 @@ def fitAtt(string):
     if len(string) == 5:
         print "Fitting variables: ",np.sum(vary)+3
         # The fit function consists of 3 polynomial expressions in the
-        # the line number. Initial values for the zero order terms are
+        # the line number, plus a possible polynomial in the energy.
+        # Initial values for the zero order terms are
         # given here, the higher terms (if any) are set to zero.
-        x = np.zeros(3+np.sum(vary))
+        x = np.zeros(4+np.sum(vary))
         offset = vary[0]
         x[offset] = float(string[2])
         offset = offset+1+vary[1]
@@ -158,28 +159,13 @@ def fitAtt(string):
         offset = offset+1+vary[2]
         x[offset] = float(string[4])
         nlines = int(string[1])
-#    elif len(string) == 7:
-#        print "Fitting 5 variables"
-#        x = np.zeros(5)
-#        x[0] = float(string[2])
-#        x[1] = float(string[3])
-#        x[2] = float(string[4])
-#        x[3] = float(string[5])
-#        x[5] = float(string[6])
-#        nlines = int(string[1])
-#        print "args=",nlines,x
     else:
         print "wrong number of args: need fitatt nlines x1 x2 x3"
         return
     fit.vary_target = vary[0]
     fit.vary_detector = vary[1]
     fit.vary_filter = vary[2]
-    if debug:
-        tw,dw,fw = fit.calcWidths(x,nlines)
-        print "initial guesses:"
-        print "tw=",tw
-        print "dw=",dw
-        print "fw=",fw
+    fit.vary_energy = vary[3]
     t0 = timeit.default_timer()
     res,cov,infodict,mesg,ier = fit.dofit(nlines,x)
     print "time=",timeit.default_timer()-t0
@@ -206,7 +192,7 @@ def fitAtt(string):
     for line in range(nlines):
         sumsq = 0.
         for sample in range(samples):
-            sumsq += (fit.atten[sample,line] - carouselCal.getAvAtten(line,sample) ) ** 2
+            sumsq += (fit.atten[line,sample] - carouselCal.getAvAtten(line,sample) ) ** 2
         ofile.write(' {0:5d}  {1:12.6f}\n'.format(line,sumsq))
         sumtot += sumsq
         if sumsq>summax:
@@ -218,7 +204,28 @@ def fitAtt(string):
     rfile.write("average error: {0:12.6f}\nmax error: {1:12.6f}\n".format(sumtot/nlines,summax))
     ofile.close()
     rfile.close()
+    print "writing polynomial correction files"
+    #(tableRes,polyFit) = fit.linesPolyFit(x,corMat,corEn,300,12.0)
+    xtab,ytab = fit.linesPolyFit(x,corMat,corEn,300,12.0)
+    print "result="
+    for i in range(len(xtab)):
+        print xtab[i],ytab[i]
+    #polyCorrections(fit,res,xSpec)
     
+
+def polyCorrections(fit,res,xSpec):
+    """ For each line calculate the expected attenuation for N points and fit an Mth order
+        polynomial to this, with the 0th order coeff forced to zero. Write these values
+        to file (binary format). This gives the line by line attenuation correction function
+        for the target material. """
+    xe = xSpec.getE()
+    tw,dw,fw,xef = fit.calcWidths(res,fit.nlines,xe)
+    print "tw,dw,fw:",tw[0],dw[0],fw[0]
+    polypoints = 300
+    for line in range(fit.nlines):
+        for point in range(polypoints):
+            pass
+            
 
 def setWidth(words):
     """ set the half width of area along row to be averaged"""
@@ -263,6 +270,7 @@ def setVary(strlst):
         print "target: ",vary[0]
         print "detector: ",vary[1]
         print "filter: ",vary[2]
+        print "energy dependence: ",vary[3]
         return
     if len(strlst)==3:
         try:
@@ -276,10 +284,12 @@ def setVary(strlst):
             vary[1] = np
         elif strlst[1]=="filter":
             vary[2] = np
+        elif strlst[1]=="energy":
+            vary[3] = np
         else:
             print "Not recognised: ",strlst[1]
     else:
-        print "syntax: vary [target|detector|filter n]"
+        print "syntax: vary [target|detector|filter|energy n]"
 
 def debugToggle(cmd):
     """ toggle debug """
@@ -296,6 +306,28 @@ def helpCar(cmd, string):
         print "  ", i
     print " "
 
+def setCorMat(words):
+    """ Inout the name of the material that will be the target of the attenuation correction
+        e.g. Calcium hydroxyapatite which might be defined in a file cahypa.txt, precalculated
+        using the program xcom."""
+    global corMat,corEn
+    if len(words)>2:
+        name = words[1]
+        corEn = float(words[2])
+    else:
+        if corMat.isValid:
+            print "corMat is set"
+        else:
+            print "corMat is not set"
+        return
+    name = words[1]
+    print "reading correction material definition from file: ",name
+    try:
+        corMat = materialAtt(name,1.0)
+    except:
+        print "error reading material type"
+    
+
 # Set of commands that are implemented and the corresponding function names.
 # Additional commands and functions can be added here.
 cmd_switch = { "load":loadAll,
@@ -308,6 +340,7 @@ cmd_switch = { "load":loadAll,
                "calcatt":calcAtt,
                "fitatt":fitAtt,
                "vary":setVary,
+               "setcormat":setCorMat,
                "debug":debugToggle,
                "quit":quitCarousel,
                "help":helpCar,
@@ -331,7 +364,10 @@ if __name__ == "__main__":
     print " "
     # set the polynomial order of the fitting variables. Variables are
     # function of line number.
-    vary = np.zeros(3,dtype='int')
+    vary = np.zeros(4,dtype='int')
+    vary[3] = -1
+    # set an object for the material to which attenuation is to be corrected to; this is null until the user provides one
+    corMat = materialAtt("",1.0)
     # command loop
     while True:
         try:
