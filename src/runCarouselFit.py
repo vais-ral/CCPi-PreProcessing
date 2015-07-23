@@ -7,6 +7,7 @@ import logging
 import timeit
 import numpy as np
 from carouselUtils import *
+import pdb
 
 def getAtt(dw,dcu,dal,dti,dcsi,me):
     """ test function to evaluate attenuation """
@@ -206,10 +207,15 @@ def fitAtt(string):
     rfile.close()
     print "writing polynomial correction files"
     #(tableRes,polyFit) = fit.linesPolyFit(x,corMat,corEn,300,12.0)
-    xtab,ytab = fit.linesPolyFit(x,corMat,corEn,300,12.0)
+    if debug:
+        pdb.set_trace()
+    xtab,ytab = fit.linesPolyFit(res,corMat,corEn,300,12.0)
     print "result="
-    for i in range(len(xtab)):
-        print xtab[i],ytab[i]
+    for i in range(len(ytab)):
+        if len(xtab) == 2:
+            print xtab[0,i],xtab[1,i],ytab[i]
+        else:
+            print xtab[0,i],ytab[i]
     #polyCorrections(fit,res,xSpec)
     
 
