@@ -637,7 +637,7 @@ class fitData:
         tw,dw,fw,ec = self.calcWidths(soln,self.nlines,xe)
         #nsamples = self.carInfo.numSamples
         # allocate space to store all calculated points and polynomials fitted to them
-        ans = np.zeros((npoints+1)*self.nlines)
+        ans = np.zeros(shape=(self.nlines,npoints+1))
         odpoly = 8
         fitdata = np.zeros(odpoly*self.nlines)
         #
@@ -671,14 +671,9 @@ class fitData:
             i0 = np.sum(at_se_finite)
             #
             count = 0
+            # loop over required attenuation values
             for muwid in mulist:
                 attSam = muwid*corMat.getMu()[:len(xe)]
-                #widSam = self.carInfo.sampWidth[sample]
-                #if sample < nsamples-1:
-                #    attSam = widSam*self.carInfo.filterAtt[sample].getMu()[:len(xe)]
-                #else:
-                #    attSam = np.ones(len(xe))
-                #attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)] #csiAtten.getMu()[0:me-1]
                 at_se_sample = at_se * np.exp(-attSam)
                 #
                 # remove nan's - see above
@@ -693,10 +688,8 @@ class fitData:
                 if i_sample < 0. and self.verbose:
                     print "i_sample<0",at_se_sample[:8]
                 #sumSq = sumSq + ( (i_sample/i0) - self.carCal.getAvAtten(line,sample) ) ** 2
-                ans[line*npoints+count] = np.log(i0/i_sample)
+                ans[line,count] = np.log(i0/i_sample)
                 count = count+1
-        if self.verbose:
-            print "tw,dw,fw,sumSq: ",tw[0],dw[0],fw[0],np.sum(ans)
         #
         # following carousel.pro, ans is the apparent attenuation or the x-axis of our correction
         # graph. the y-axis should be the actual attenuation at monochromatic energy Ecor for the
