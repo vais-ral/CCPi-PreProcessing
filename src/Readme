@@ -7,6 +7,7 @@ runCarouselFit.py: fitting for carousel calibration data
 
 on scarf must first do:
 
+  module load python278/matplotlib/1.4.2
   module load python278/scipy/0.14.0
 
 On vishighmem, development machine:
@@ -35,7 +36,7 @@ which should load the carousel definition data and the run calibration data.
 To set the correction material (the one to for which attenuation correction will be
 calculated) do:
 
-  setcormat CaHydro 45.
+  setcormat CaHydro 40.
 
 To view the calibation images use the command:
 
