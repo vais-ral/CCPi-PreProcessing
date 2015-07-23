@@ -3,11 +3,11 @@ runCarouselFit.py: fitting for carousel calibration data
 ========================================================
 
 
-1. Set up python environment
+1. Set up python environment to include scipy, e.g.
 
 on scarf must first do:
 
-  module load python278/matplotlib/1.4.2
+  module load python278/scipy/0.14.0
 
 On vishighmem, development machine:
 
