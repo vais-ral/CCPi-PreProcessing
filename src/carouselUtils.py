@@ -637,7 +637,7 @@ class fitData:
         tw,dw,fw,ec = self.calcWidths(soln,self.nlines,xe)
         #nsamples = self.carInfo.numSamples
         # allocate space to store all calculated points and polynomials fitted to them
-        ans = np.zeros(shape=(self.nlines,npoints+1))
+        attout = np.zeros(shape=(self.nlines,npoints+1))
         odpoly = 8
         fitdata = np.zeros(odpoly*self.nlines)
         #
@@ -649,6 +649,10 @@ class fitData:
 
         # generate points to evaluate attenuation at.
         mulist = np.arange(npoints+1,dtype='float')*attrange/(npoints*corMat.getMuByE(corEn))
+        # attin is the observed attenuation; for each line want to find corresponding attout
+        # the "true" attenuation at energy corEn
+        attin = mulist*corMat.getMuByE(corEn)
+        polyfit = np.zeros(shape=(self.nlines,odpoly+2))
         #
         # for each line generate npoints values of attenuation from fit data
         #
@@ -688,14 +692,16 @@ class fitData:
                 if i_sample < 0. and self.verbose:
                     print "i_sample<0",at_se_sample[:8]
                 #sumSq = sumSq + ( (i_sample/i0) - self.carCal.getAvAtten(line,sample) ) ** 2
-                ans[line,count] = np.log(i0/i_sample)
+                attout[line,count] = np.log(i0/i_sample)
                 count = count+1
+            #
+            polyfit[line,0:odpoly+1] = np.polyfit(attout[line,1:],attin[1:]/attout[line,1:],odpoly)
         #
-        # following carousel.pro, ans is the apparent attenuation or the x-axis of our correction
-        # graph. the y-axis should be the actual attenuation at monochromatic energy Ecor for the
+        # following carousel.pro, attout is the apparent attenuation or the x-axis of our correction
+        # graph. the y-axis should be the actual attenuation at monochromatic energy corEn for the
         # correction material. Since the density of the correction material is unknown, which is the
         # main point of this code, width and density are not used here. For fitting of a polynomial
         # through (0,0) can divide y values by x values, ignoring origin (first point in this case).
         #
-        ans2 = mulist*corMat.getMuByE(corEn)
-        return ans,ans2
+        
+        return attout,attin,polyfit
