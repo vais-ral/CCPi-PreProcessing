@@ -3,6 +3,7 @@
     Evershed.
 """
 import sys
+import os.path
 import logging
 import timeit
 import numpy as np
@@ -421,15 +422,29 @@ if __name__ == "__main__":
     # set an object for the material to which attenuation is to be corrected to; this is null until the user provides one
     corMat = materialAtt("",1.0)
     # command loop
+    filein = False
     while True:
         try:
-            cmd = raw_input("cmd: ").strip()
+            if filein:
+                cmd = infile.readline().strip()
+                if cmd=='':
+                    filein = False
+                    infile.close()
+                    break
+            else:
+                cmd = raw_input("cmd: ").strip()
         except EOFError as ex:
+            print "eof"
             sys.exit("EOF")
         words = cmd.split(" ")
         try:
             if words[0] == "help":
                 cmd_switch[words[0]](cmd_switch, words)
+            elif words[0] == "read":
+                rfile = words[1]
+                if os.path.isfile(rfile):
+                    infile = open(rfile,'r')
+                    filein = True
             else:
                 cmd_switch[words[0]](words)
         except SystemExit as ex:
