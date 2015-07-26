@@ -6,6 +6,7 @@ import sys
 import logging
 import timeit
 import numpy as np
+from numpy.polynomial.polynomial import polyval
 from carouselUtils import *
 import pdb
 
@@ -92,6 +93,7 @@ def showSpec(string):
 def quitCarousel(string):
     """ exit the command level """
     sys.exit("quit called")
+
 def showAtt(string):
     """ 1D plots of attenuation of sample n"""
     if len(string)>1:
@@ -105,7 +107,43 @@ def showAtt(string):
             plt.show()
             return
     print "syntax: showatt n"
-    print "where n is the carousel data number, max=",carouselCal.samples
+    print "where n is the carousel number range 0:",carouselCal.samples-1
+
+def showCor(string):
+    """ plot the fitted correction curve from the polynomial data """
+    if not 'xtab' in globals():
+        print "No correction data available; run fitatt first"
+        return
+    if len(string)==1:
+        linevals = [ 0, int((len(xtab)-1)/2), len(xtab)-1 ]
+    else:
+        linevals = []
+        for i in range(len(string)-1):
+            try:
+                lineno=int(string[i+1])
+            except:
+                print "Bad integer value: ",string[i+1]
+                return
+            if lineno>=0 and lineno<=len(xtab):
+                linevals.append(lineno)
+            else:
+                print "skipping out of range value: ",lineno
+    print "lines=",linevals
+    #print ytab[::30]
+    #for line in linevals:
+    #    xvals = polyval( xtab[0,:], polyfit[line,::-1])
+    #    print "pv=",polyfit[line,::-1]
+    #    print xvals[::30]
+    #    print " "
+    mymax=np.max(xtab[:,-1])
+    xval = np.linspace(0.0,mymax,num=300)
+    for line in linevals:
+        yval = polyval( xval,polyfit[line,::-1])
+        plt.plot(xtab[line,:],ytab,xval,yval,':')
+    # add the x=y line for comparison
+    plt.plot([0.0,mymax],[0.0,mymax],'r--')
+    plt.draw()
+    plt.show()
 
 def setFilters(string):
     try:
@@ -135,9 +173,13 @@ def calcAtt(string):
     pass
 
 def fitAtt(string):
-    """ meant to do repeated fitting"""
+    """ Check necessary data has been set then fit model to carousel data.
+        Finally generate curves for attenuation over each line using the
+        correction material (corMat/corEn) and then fit a polynomial to this for
+        correction purposes.
+        """
     global carouselData, carouselCal, xSpec, debug, vary
-    global res
+    global res,xtab,ytab,polyfit
     defMat = "Cu"
     fit = fitData(carouselData, carouselCal, defMat)
     fit.verbose = debug
@@ -147,7 +189,7 @@ def fitAtt(string):
         np.seterr(over='ignore',invalid='ignore')
 
     if len(string) == 5:
-        print "Fitting variables: ",np.sum(vary)+3
+        print "Fitting variables: ",np.sum(vary)+4
         # The fit function consists of 3 polynomial expressions in the
         # the line number, plus a possible polynomial in the energy.
         # Initial values for the zero order terms are
@@ -162,6 +204,8 @@ def fitAtt(string):
         nlines = int(string[1])
     else:
         print "wrong number of args: need fitatt nlines x1 x2 x3"
+        print "where nlines=number of lines to fit and x1/2/3 are initial values"
+        print "for the unknowns: target width, ln(detector width), filter width"
         return
     fit.vary_target = vary[0]
     fit.vary_detector = vary[1]
@@ -169,17 +213,24 @@ def fitAtt(string):
     fit.vary_energy = vary[3]
     t0 = timeit.default_timer()
     res,cov,infodict,mesg,ier = fit.dofit(nlines,x)
-    print "time=",timeit.default_timer()-t0
+    tim = timeit.default_timer()-t0
+    print "time=",tim
     print "dofit returned: "
     print " best fit values = ",res
     print " ier = ",ier
     print " iterations = ",infodict["nfev"]
-    if debug:
-        print " cov = ",cov
-        print " mesg = ",mesg
     # measure error
     samples = carouselCal.samples
     ofile = open('fit.log','w')
+    ofile.write('time={0:12.6f}\n'.format(tim))
+    ofile.write('dofit returned: ')
+    ofile.write(' best fit values = \n')
+    ofile.write(str(res)+'\n')
+    ofile.write(' ier = {0:5d}\n'.format(ier))
+    ofile.write(' iterations = {0:5d}\n'.format(infodict["nfev"]))
+    ofile.write(' cov = ')
+    ofile.write(str(cov)+'\n')
+    ofile.write(' mesg = '+mesg+'\n')
     rfile = open('param.log','w')
     rfile.write('fit input: lines={0:5d}\n'.format(nlines))
     rfile.write('guess: ')
@@ -190,6 +241,13 @@ def fitAtt(string):
     rfile.write('\n')
     sumtot=0.
     summax=0.
+    #if debug:
+    #    pdb.set_trace()
+    # calcualte the attenuation(corEn) vs attenuation(observed) and return
+    # polynomial fit to these curves for each line.
+    xtab,ytab,polyfit = fit.linesPolyFit(res,corMat,corEn,300,12.0)
+    # find average and max error for each line
+    rfile.write('polyfits:')
     for line in range(nlines):
         sumsq = 0.
         for sample in range(samples):
@@ -200,38 +258,25 @@ def fitAtt(string):
             summax = sumsq
         if debug:
             print "Line: ",line," ave error:",sumsq
+        rfile.write(str(polyfit[line,:])+'\n')
     print "average error: ",sumtot/nlines
     print "max error: ",summax
     rfile.write("average error: {0:12.6f}\nmax error: {1:12.6f}\n".format(sumtot/nlines,summax))
-    ofile.close()
-    rfile.close()
     print "writing polynomial correction files"
     #(tableRes,polyFit) = fit.linesPolyFit(x,corMat,corEn,300,12.0)
-    if debug:
-        pdb.set_trace()
-    xtab,ytab = fit.linesPolyFit(res,corMat,corEn,300,12.0)
-    print "result="
-    for i in range(len(ytab)):
-        if len(xtab) == 2:
-            print xtab[0,i],xtab[1,i],ytab[i]
-        else:
-            print xtab[0,i],ytab[i]
-    #polyCorrections(fit,res,xSpec)
+    #print "result="
+    #for i in range(len(ytab)):
+    #    if len(xtab) == 2:
+    #        print xtab[0,i],xtab[1,i],ytab[i]
+    #    else:
+    #        print xtab[0,i],ytab[i]
+    print "polyfit="
+    print polyfit
+    rfile.write('polyfits:')
     
+    ofile.close()
+    rfile.close()
 
-def polyCorrections(fit,res,xSpec):
-    """ For each line calculate the expected attenuation for N points and fit an Mth order
-        polynomial to this, with the 0th order coeff forced to zero. Write these values
-        to file (binary format). This gives the line by line attenuation correction function
-        for the target material. """
-    xe = xSpec.getE()
-    tw,dw,fw,xef = fit.calcWidths(res,fit.nlines,xe)
-    print "tw,dw,fw:",tw[0],dw[0],fw[0]
-    polypoints = 300
-    for line in range(fit.nlines):
-        for point in range(polypoints):
-            pass
-            
 
 def setWidth(words):
     """ set the half width of area along row to be averaged"""
@@ -266,7 +311,7 @@ def showCalConf(string):
     print "Source filter:"
     print '         {0:7s} {1:7f} {2:7f}'.format(carouselCal.targetMat,
                0.0, carouselCal.targetDensity)
-    print "Voltage=",  carouselCal.voltage, " angel=", carouselCal.angle
+    print "Voltage=",  carouselCal.voltage, " angle=", carouselCal.angle
 
 def setVary(strlst):
     """ define polynomial order of parameters to fit """
@@ -341,6 +386,7 @@ cmd_switch = { "load":loadAll,
                "showspec":showSpec,
                "showconf":showCalConf,
                "showatt":showAtt,
+               "showcor":showCor,
                "setfilters":setFilters,
                "setwidth":setWidth,
                "calcatt":calcAtt,
