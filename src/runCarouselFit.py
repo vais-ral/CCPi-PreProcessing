@@ -430,11 +430,10 @@ if __name__ == "__main__":
                 if cmd=='':
                     filein = False
                     infile.close()
-                    break
+                    continue
             else:
                 cmd = raw_input("cmd: ").strip()
         except EOFError as ex:
-            print "eof"
             sys.exit("EOF")
         words = cmd.split(" ")
         try:
