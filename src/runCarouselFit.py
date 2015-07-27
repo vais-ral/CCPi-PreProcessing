@@ -97,18 +97,30 @@ def quitCarousel(string):
 
 def showAtt(string):
     """ 1D plots of attenuation of sample n"""
+    defline=400
     if len(string)>1:
-        samp = int(string[1])
+        try:
+            samp = int(string[1])
+        except:
+            print "failed to read sample value"
+            return
         print "samp: ",samp
-        defline=400
         if samp > -1 and samp < carouselCal.samples:
             z = carouselCal.getImage(samp)
             plt.plot(z[defline,:])
+            plt.xlabel("Column number at line "+str(defline))
+            plt.ylabel("attenuation")
             plt.draw()
             plt.show()
-            return
-    print "syntax: showatt n"
-    print "where n is the carousel number range 0:",carouselCal.samples-1
+    else:
+        for i in range(carouselCal.samples):
+            z = carouselCal.getImage(i)
+            plt.plot(z[defline,:])
+        plt.xlabel("Column number at line "+str(defline))
+        plt.ylabel("attenuation")
+        plt.draw()
+        plt.show()
+    return
 
 def showCor(string):
     """ plot the fitted correction curve from the polynomial data """
@@ -141,6 +153,8 @@ def showCor(string):
     for line in linevals:
         yval = polyval( xval,polyfit[line,::-1])
         plt.plot(xtab[line,:],ytab,xval,yval,':')
+        plt.xlabel('Observed log attenuation ratio')
+        plt.ylabel('Effective single energy log attenuation ratio')
     # add the x=y line for comparison
     plt.plot([0.0,mymax],[0.0,mymax],'r--')
     plt.draw()
@@ -248,33 +262,29 @@ def fitAtt(string):
     # polynomial fit to these curves for each line.
     xtab,ytab,polyfit = fit.linesPolyFit(res,corMat,corEn,300,12.0)
     # find average and max error for each line
-    rfile.write('polyfits:')
+    rfile.write('polyfits:\n')
+    lsumsq = []
     for line in range(nlines):
         sumsq = 0.
         for sample in range(samples):
             sumsq += (fit.atten[line,sample] - carouselCal.getAvAtten(line,sample) ) ** 2
         ofile.write(' {0:5d}  {1:12.6f}\n'.format(line,sumsq))
+        lsumsq.append(sumsq)
         sumtot += sumsq
         if sumsq>summax:
             summax = sumsq
         if debug:
             print "Line: ",line," ave error:",sumsq
-        rfile.write(str(polyfit[line,:])+'\n')
+        # save poly data to param.log
+        rfile.write('{0:5d} '.format(line)+str(polyfit[line,:])+'\n')
     print "average error: ",sumtot/nlines
     print "max error: ",summax
     rfile.write("average error: {0:12.6f}\nmax error: {1:12.6f}\n".format(sumtot/nlines,summax))
-    print "writing polynomial correction files"
-    #(tableRes,polyFit) = fit.linesPolyFit(x,corMat,corEn,300,12.0)
-    #print "result="
-    #for i in range(len(ytab)):
-    #    if len(xtab) == 2:
-    #        print xtab[0,i],xtab[1,i],ytab[i]
-    #    else:
-    #        print xtab[0,i],ytab[i]
-    print "polyfit="
-    print polyfit
-    rfile.write('polyfits:')
-    
+    plt.plot(lsumsq)
+    plt.xlabel('line number')
+    plt.ylabel('mean sq error')
+    plt.draw()
+    plt.show(block=False)
     ofile.close()
     rfile.close()
 
@@ -431,8 +441,9 @@ if __name__ == "__main__":
                     filein = False
                     infile.close()
                     continue
+                print " bhc: ",cmd
             else:
-                cmd = raw_input("cmd: ").strip()
+                cmd = raw_input("bhc: ").strip()
         except EOFError as ex:
             sys.exit("EOF")
         words = cmd.split(" ")
@@ -444,6 +455,8 @@ if __name__ == "__main__":
                 if os.path.isfile(rfile):
                     infile = open(rfile,'r')
                     filein = True
+            elif words[0] == "#":
+                continue
             else:
                 cmd_switch[words[0]](words)
         except SystemExit as ex:
