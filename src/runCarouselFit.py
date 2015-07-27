@@ -56,12 +56,15 @@ def showImg(string):
     except NameError:
         print "** must read calibration data first"
         return
-    carouselCal.plotCalData(True, width)
+    plt.figure(FIG_IMG)
+    carouselCal.plotCalData(False, width)
+    plt.show(block=False)
 
 
 def showSpec(string):
     """ plot spectra """
     if xSpec.valid:
+        plt.figure(FIG_SPEC)
         yval = np.zeros(xSpec.getS().size)
         norm = np.sum(xSpec.getS())
         yval = xSpec.getS()/norm
@@ -87,7 +90,7 @@ def showSpec(string):
         plt.xlabel('KeV')
         plt.ylabel('S(E) (normalised)')
         plt.draw()
-        plt.show()
+        plt.show(block=False)
     else:
         print "must load data first"
         
@@ -98,6 +101,7 @@ def quitCarousel(string):
 def showAtt(string):
     """ 1D plots of attenuation of sample n"""
     defline=400
+    plt.figure(FIG_ATT1D)
     if len(string)>1:
         try:
             samp = int(string[1])
@@ -111,7 +115,7 @@ def showAtt(string):
             plt.xlabel("Column number at line "+str(defline))
             plt.ylabel("attenuation")
             plt.draw()
-            plt.show()
+            plt.show(block=False)
     else:
         for i in range(carouselCal.samples):
             z = carouselCal.getImage(i)
@@ -119,7 +123,7 @@ def showAtt(string):
         plt.xlabel("Column number at line "+str(defline))
         plt.ylabel("attenuation")
         plt.draw()
-        plt.show()
+        plt.show(block=False)
     return
 
 def showCor(string):
@@ -150,6 +154,7 @@ def showCor(string):
     #    print " "
     mymax=np.max(xtab[:,-1])
     xval = np.linspace(0.0,mymax,num=300)
+    plt.figure(FIG_COR)
     for line in linevals:
         yval = polyval( xval,polyfit[line,::-1])
         plt.plot(xtab[line,:],ytab,xval,yval,':')
@@ -158,7 +163,7 @@ def showCor(string):
     # add the x=y line for comparison
     plt.plot([0.0,mymax],[0.0,mymax],'r--')
     plt.draw()
-    plt.show()
+    plt.show(block=False)
 
 def setFilters(string):
     try:
@@ -280,6 +285,7 @@ def fitAtt(string):
     print "average error: ",sumtot/nlines
     print "max error: ",summax
     rfile.write("average error: {0:12.6f}\nmax error: {1:12.6f}\n".format(sumtot/nlines,summax))
+    plt.figure(FIG_ERR)
     plt.plot(lsumsq)
     plt.xlabel('line number')
     plt.ylabel('mean sq error')
@@ -410,20 +416,28 @@ cmd_switch = { "load":loadAll,
                }
 
 
+# set figures to use for different plots
+FIG_COR = 2
+FIG_ATT1D = 3
+FIG_SPEC = 4
+FIG_IMG = 5
+FIG_ERR = 6
 # simple command line loop to allow loading of data and run
+
 # of fitting code.
 if __name__ == "__main__":
     logging.basicConfig(level = logging.WARNING)
     nargs = len(sys.argv)
     debug = False
-#    if nargs > 1 and sys.argv[1] == "-debug":
-#        debug = True
-#        print "set debug True"
-#    else:
-#        debug = False
-    # test reading attenuation data for standard materials
+
     print " "
-    print " *** Carousel test program ***"
+    print " *** Carousel data fitting program ***"
+    print " "
+    print " Code based on algorithms developed at Queen Mary University"
+    print " of London by Graham Davis, Anthony Evershed et al"
+    print " This implementation by Ron Fowler at STFC"
+    print " contact ronald.fowler@stfc.ac.uk"
+    print " Funded by the CCPi project"
     print " "
     # set the polynomial order of the fitting variables. Variables are
     # function of line number.
