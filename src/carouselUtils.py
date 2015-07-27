@@ -77,7 +77,6 @@ class specData:
         """ Read the spectra for this voltage/angle pair from file.
             If file not found, return spec=0 """
         filename = "./spectra/%s/%03d%03d.spc" % (target, voltage, angle*10)
-        #print "filename=",filename
         if not os.path.isfile(filename):
             print "file not found: ", filename, " in specData"
             self.valid = False
@@ -278,9 +277,7 @@ class carouselCalibrationData:
                     self.filterAtten = {}
                     pos = "filtermatcnt"
                     for i in range(self.filterCount):
-                        #print "i:",i
                         self.filterMaterial[i] = self.__readLineStrip(fl)
-                        #print "f:",self.filterMaterial[i]
                         self.filterWidth[i] = float(self.__readLineStrip(fl))
                         self.filterDensity[i] = float(self.__readLineStrip(fl))
                         try:
@@ -316,8 +313,6 @@ class carouselCalibrationData:
             with open(imageFile, 'rb') as fl:
                 self.image = np.fromfile(fl, dtype = self.imageFileFormat,
                                        count = self.rows*self.lines*self.samples).reshape(self.samples, self.lines, self.rows)
-            #nancount = np.count_nonzero(np.isnan(self.image))
-            #self.printImageStats()
         else:
             print "Image file not found!: ", imageFile
 
@@ -325,7 +320,6 @@ class carouselCalibrationData:
         """ print out some data for each frame in the set of images"""
         for i in range(self.samples):
             nancount = np.count_nonzero(np.isnan(self.image[i,:,:]))
-            #print "Image: ",i
             if nancount>0:
                 print "*** img ", i, " contains: ", nancount, " NaNs (", nancount*100./(self.rows*self.lines), "%)"
                 maskedimage = np.ma.array(self.image[i,:,:],mask = np.isnan(self.image[i,:,:]))
@@ -380,10 +374,6 @@ class carouselCalibrationData:
                 logging.debug('s= %d l=%d c=%f', s, l, self.__centre[s, l])
                 rowStart = int(self.__centre[s, l]-self.width)
                 rowEnd = int(rowStart+2*self.width)
-                #if l==0:
-                #    print 'av: ',rowStart,rowEnd,np.average(self.image[s,l,rowStart:rowEnd])
-                #    if s==0:
-                #        print self.image[s,l,rowStart:rowEnd]
                 self.__cacheAve[s, l] = np.average(self.image[s, l, rowStart:rowEnd])
         return self.__cacheAve[sample, line]
 
@@ -422,7 +412,6 @@ class carouselCalibrationData:
                 if markWidth>0:
                     z[li, cen-markWidth] = 0
                     z[li, cen+markWidth] = 0
-            #print "plotting: ",i,"  center=",self.getCentrePos(650,i)
             maskedimage = np.ma.array(z, mask = np.isnan(z))
             zmax = np.max(maskedimage)
             zzmax = max(zmax, zzmax)
@@ -473,7 +462,7 @@ class fitData:
         # define the fitting parameters and their global/local status
         self.varFilter = -1
         for i in carCal.filterMaterial:
-            print carCal.filterMaterial[i]
+            #print carCal.filterMaterial[i]
             if defMat == carCal.filterMaterial[i]:
                 self.varFilter = i
                 self.defFilterMat = defMat
