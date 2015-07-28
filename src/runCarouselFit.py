@@ -208,13 +208,13 @@ def fitAtt(string):
     else:
         np.seterr(over='ignore',invalid='ignore')
 
+    x = np.zeros(4+np.sum(vary))
     if len(string) == 5:
         print "Fitting variables: ",np.sum(vary)+4
         # The fit function consists of 3 polynomial expressions in the
         # the line number, plus a possible polynomial in the energy.
         # Initial values for the zero order terms are
         # given here, the higher terms (if any) are set to zero.
-        x = np.zeros(4+np.sum(vary))
         offset = vary[0]
         x[offset] = float(string[2])
         offset = offset+1+vary[1]
@@ -222,6 +222,12 @@ def fitAtt(string):
         offset = offset+1+vary[2]
         x[offset] = float(string[4])
         nlines = int(string[1])
+    elif len(string) == 2:
+        nlines = int(string[1])
+        if len(res) == len(x):
+            x = res
+        else:
+            print "Using zero initial guess"   
     else:
         print "wrong number of args: need fitatt nlines x1 x2 x3"
         print "where nlines=number of lines to fit and x1/2/3 are initial values"
