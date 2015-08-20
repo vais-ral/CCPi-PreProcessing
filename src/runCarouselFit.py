@@ -423,11 +423,11 @@ cmd_switch = { "load":loadAll,
 
 
 # set figures to use for different plots
-FIG_COR = 2
-FIG_ATT1D = 3
-FIG_SPEC = 4
-FIG_IMG = 5
-FIG_ERR = 6
+FIG_COR = "Correction"
+FIG_ATT1D = "CarouselLines"
+FIG_SPEC = "Spectra"
+FIG_IMG = "CarouselImages"
+FIG_ERR = "ErrorInFit"
 # simple command line loop to allow loading of data and run
 
 # of fitting code.
@@ -471,10 +471,13 @@ if __name__ == "__main__":
             if words[0] == "help":
                 cmd_switch[words[0]](cmd_switch, words)
             elif words[0] == "read":
-                rfile = words[1]
-                if os.path.isfile(rfile):
+                if len(words)>1 and os.path.isfile(words[1]):
+                    rfile = words[1]
                     infile = open(rfile,'r')
                     filein = True
+                else:
+                    print "Error - syntax: read file"
+                    continue
             elif words[0] == "#":
                 continue
             else:
