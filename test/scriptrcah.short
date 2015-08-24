@@ -1,0 +1,17 @@
+# example fit file
+# First read carousel definition and data files
+load carouselData/carouselrcah.def carouselData/runrcah1.data
+# show the initial data; note the plot must be closed before the
+# calculation will procede at present.
+showimg
+# set the target material; this must be defined by running xcom
+# beforehand.
+setcormat CaHydro 40.
+# define the order of polynomials (in line number) to use for fitting
+# the data.
+vary target 2
+vary detector 2
+# run a fit across first 20 lines of the test data set providing the three
+# initial guesses for the constant terms in the target, detector and filter
+# variables.
+#fitatt 20 .01 -6 .01
