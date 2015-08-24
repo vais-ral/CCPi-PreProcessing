@@ -401,7 +401,7 @@ class carouselCalibrationData:
             pltgrid=3
         else:
             pltgrid=4
-            nsample = max(nsample, 15)
+            nsample = min(nsample, 15)
         for isam in range(nsample):
             # deep copy image so can modify
             z = np.copy(self.getImage(isam))
