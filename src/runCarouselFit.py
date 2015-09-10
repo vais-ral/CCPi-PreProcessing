@@ -122,14 +122,20 @@ def showAtt(string):
         except:
             print "failed to read sample value"
             return
-        print "samp: ",samp
-        if samp > -1 and samp < carouselCal.samples:
+        if len(string)>2:
+            try:
+                defline = int(string[2])
+            except:
+                print "failed to read line number"
+        if samp > -1 and samp < carouselCal.samples and defline > -1 and defline < carouselCal.lines:
             z = carouselCal.getImage(samp)
             plt.plot(z[defline,:])
             plt.xlabel("Column number at line "+str(defline))
             plt.ylabel("attenuation")
             plt.draw()
             plt.show(block=False)
+        else:
+            print "sample number out of range"
     else:
         for i in range(carouselCal.samples):
             z = carouselCal.getImage(i)
@@ -246,6 +252,9 @@ def fitAtt(string):
         print "wrong number of args: need fitatt nlines x1 x2 x3"
         print "where nlines=number of lines to fit and x1/2/3 are initial values"
         print "for the unknowns: target width, ln(detector width), filter width"
+        return
+    if nlines < 1 or nlines > carouselCal.lines:
+        print "fit lines out of range, must be 1 to ",carouselCal.lines
         return
     fit.vary_target = vary[0]
     fit.vary_detector = vary[1]
