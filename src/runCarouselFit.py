@@ -8,7 +8,12 @@ import logging
 import timeit
 import numpy as np
 from numpy.polynomial.polynomial import polyval
-from carouselUtils import *
+#from carouselUtils import *
+import carouselUtils as cu
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    sys.exit("Error: cant find matplotlib")
 import pdb
 
 def getAtt(dw,dcu,dal,dti,dcsi,me):
@@ -35,15 +40,15 @@ def loadAll(string):
         print "syntax: load <cardef> <carrun>"
         return
     
-    carouselData = carousel(string[1])
+    carouselData = cu.carousel(string[1])
     if not carouselData.isValid():
         print "** failed to load carousel data"
         return
-    carouselCal = carouselCalibrationData(string[2], carouselData)
+    carouselCal = cu.carouselCalibrationData(string[2], carouselData)
     if not carouselCal.isValid():
         print "** failed to load calibration data"
         return
-    xSpec = specData(carouselCal.targetMat, carouselCal.voltage, carouselCal.angle)
+    xSpec = cu.specData(carouselCal.targetMat, carouselCal.voltage, carouselCal.angle)
     if not xSpec.isValid():
         sys.exit("** failed to load spectrum")
 
@@ -51,6 +56,9 @@ def loadAll(string):
 def showImg(string):
     """ plot the n calibration images on one plot; user must kill
         window to continue"""
+    if carouselCal == None:
+        print "must load data first"
+        return
     try:
         width = carouselCal.width
     except NameError:
@@ -63,6 +71,9 @@ def showImg(string):
 
 def showSpec(string):
     """ plot spectra """
+    if carouselCal == None:
+        print "must load data first"
+        return
     if xSpec.valid:
         plt.figure(FIG_SPEC)
         yval = np.zeros(xSpec.getS().size)
@@ -100,6 +111,9 @@ def quitCarousel(string):
 
 def showAtt(string):
     """ 1D plots of attenuation of sample n"""
+    if carouselCal == None:
+        print "must load data first"
+        return
     defline=400
     plt.figure(FIG_ATT1D)
     if len(string)>1:
@@ -201,7 +215,7 @@ def fitAtt(string):
     global carouselData, carouselCal, xSpec, debug, vary
     global res,xtab,ytab,polyfit
     defMat = "Cu"
-    fit = fitData(carouselData, carouselCal, defMat)
+    fit = cu.fitData(carouselData, carouselCal, defMat)
     fit.verbose = debug
     if debug:
         np.seterr(over='warn',invalid='warn')
@@ -306,12 +320,15 @@ def setWidth(words):
     if len(words)>1:
         try:
             width = float(words[1])
+            carouselCal.width = width
         except:
-            print "value not recognised"
+            print "load carousel data before setting width"
             return
-        carouselCal.width = width
     else:
-        print "width= ",carouselCal.width
+        try:
+            print "width= ",carouselCal.width, " (No. of pixels about centre of line to average)"
+        except:
+            print "width not set until carousel data loaded"
 
 
 def showCalConf(string):
@@ -369,6 +386,7 @@ def debugToggle(cmd):
     """ toggle debug """
     global debug
     debug = not debug
+    print "debug set to ",debug
     
 
 def helpCar(cmd, string):
@@ -381,23 +399,27 @@ def helpCar(cmd, string):
     print " "
 
 def setCorMat(words):
-    """ Inout the name of the material that will be the target of the attenuation correction
+    """ Input the name of the material that will be the target of the attenuation correction
         e.g. Calcium hydroxyapatite which might be defined in a file cahypa.txt, precalculated
-        using the program xcom."""
+        using the program xcom. Without arguments, list current setting, if any."""
     global corMat,corEn
     if len(words)>2:
         name = words[1]
-        corEn = float(words[2])
+        try:
+            corEn = float(words[2])
+        except:
+            print "failed to read energy value"
+            return
     else:
-        if corMat.isValid:
-            print "corMat is set"
+        if corMat.name != "":
+            print "corMat is set to ",corMat.name," and energy ",corEn,"KeV"
         else:
             print "corMat is not set"
         return
     name = words[1]
     print "reading correction material definition from file: ",name
     try:
-        corMat = materialAtt(name,1.0)
+        corMat = cu.materialAtt(name,1.0)
     except:
         print "error reading material type"
     
@@ -435,6 +457,7 @@ if __name__ == "__main__":
     logging.basicConfig(level = logging.WARNING)
     nargs = len(sys.argv)
     debug = False
+    carouselCal = None
 
     print " "
     print " *** Carousel data fitting program ***"
@@ -450,7 +473,7 @@ if __name__ == "__main__":
     vary = np.zeros(4,dtype='int')
     vary[3] = -1
     # set an object for the material to which attenuation is to be corrected to; this is null until the user provides one
-    corMat = materialAtt("",1.0)
+    corMat = cu.materialAtt("",1.0)
     # command loop
     filein = False
     while True:
