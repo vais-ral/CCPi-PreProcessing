@@ -456,7 +456,7 @@ class fitData:
         self.vary_detector=1  #3
         self.vary_filter=0
         self.vary_energy=-1
-        # since there may be several filters, define which which should vary
+        # since there may be several filters, define which one should vary
         self.vary_filter_name="Cu"
         self.verbose = False
         # define the fitting parameters and their global/local status
@@ -469,7 +469,10 @@ class fitData:
                 self.defFilter = 'global'
         if self.varFilter==-1:
             print "** can't find fit filter: ", defMat
-            self.isValid = False
+            if len(carCal.filterMaterial)>0:
+                self.defFilterMat=carCal.filterMaterial[0]
+                print "using material = ",self.defFilterMat
+            # self.isValid = False
         self.atten = np.zeros([self.carCal.lines,self.carInfo.getSamples()])
         #if len([m for m in carCal.filterMaterial if defMat in m]) > 0 :
         #    self.defMat=defMat
@@ -544,8 +547,8 @@ class fitData:
         #for field, val in  leastsq(self.objFunSq, x, full_output = True).items():
         #    print "field=",field," value=",value
         print "atten=",self.atten[0,:]
-        expt = np.zeros(10)
-        for i in range(9):
+        expt = np.zeros(self.carCal.samples+1)
+        for i in range(self.carCal.samples):
              expt[i] = self.carCal.getAvAtten(0,i)
         print "expt=",expt
         #plt.plot(self.atten[0,:])
@@ -562,7 +565,7 @@ class fitData:
         # for flexiblity all 3 are dimesioned by nlines
         xe = self.carCal.spec.getE()
         tw,dw,fw,ec = self.calcWidths(x,self.nlines,xe)
-        nsamples = self.carInfo.numSamples
+        nsamples = self.carInfo.numSamples - 1 # ignore null sample
         ans = np.zeros(nsamples*self.nlines)
         tarAtt = self.carCal.targetAtten
         se = self.carCal.spec.getS()
@@ -585,12 +588,12 @@ class fitData:
             at_se_finite = at_se[np.logical_not(np.isnan(at_se))]
             i0 = np.sum(at_se_finite)
             #
-            for sample in range(nsamples-1):
+            for sample in range(nsamples):
                 widSam = self.carInfo.sampWidth[sample]
-                if sample < nsamples-1:
-                    attSam = widSam*self.carInfo.filterAtt[sample].getMu()[:len(xe)]
-                else:
-                    attSam = np.ones(len(xe))
+                #if sample < nsamples-1:
+                attSam = widSam*self.carInfo.filterAtt[sample].getMu()[:len(xe)]
+                #else:
+                #    attSam = np.ones(len(xe))
                 #attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)] #csiAtten.getMu()[0:me-1]
                 at_se_sample = at_se * np.exp(-attSam)
                 #
