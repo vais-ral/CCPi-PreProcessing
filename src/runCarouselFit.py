@@ -210,7 +210,26 @@ def setFilters(string):
         print "no carousel data file loaded"
 
 def calcAtt(string):
+    print "Not implemented"
     pass
+
+def setSamplesToFit(string):
+    """ set or print the number of samples to be fitted to"""
+    if carouselCal == None:
+        print "must load data first"
+        return
+    if len(string) > 1:
+        try:
+            samples = int(string[1])
+        except:
+            print "must give integer"
+            return
+        if samples>0:
+            # should not be two values here
+            carouselCal.samples=samples
+            carouselData.numSamples = samples+1 # this includes the "null" sample, which is not read
+    print "samples set to ",carouselCal.samples
+        
 
 def fitAtt(string):
     """ Check necessary data has been set then fit model to carousel data.
@@ -366,6 +385,9 @@ def setVary(strlst):
     """ define polynomial order of parameters to fit """
     global vary
     if len(strlst)==1:
+        print "Control order of polynomial used for fitting across lines"
+        print " - 3 widths are fitted for target, detector and filter"
+        print " - Experimental is to set energy dependence away from linear"
         print "settings:"
         print "target: ",vary[0]
         print "detector: ",vary[1]
@@ -405,6 +427,8 @@ def helpCar(cmd, string):
     print "cmds:"
     for i in cmd:
         print "  ", i
+    print " "
+    print "To execute script file use: read <filename>"
     print " "
 
 def setCorMat(words):
@@ -448,10 +472,10 @@ cmd_switch = { "load":loadAll,
                "vary":setVary,
                "setcormat":setCorMat,
                "debug":debugToggle,
+               "fitsamples":setSamplesToFit,
                "quit":quitCarousel,
                "help":helpCar,
                }
-
 
 # set figures to use for different plots
 FIG_COR = "Correction"
