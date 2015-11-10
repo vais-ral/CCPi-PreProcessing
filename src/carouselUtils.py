@@ -180,6 +180,7 @@ class carousel:
         self.numSamples = None
         self.sampWidth = None
         self.materialTypes = None
+        self.mask = None
         self.valid = False
         self.__readFile(defFile)
 
@@ -203,6 +204,7 @@ class carousel:
                         self.filterAtt[i] = materialAtt(self.materialTypes[i],self.density[i])
                     except:
                         print "** failed to set carousel attenuation for ",self.materialTypes[i]
+                self.mask = np.zeros((self.numSamples),dtype=bool)
             self.valid = True
         else:
             print "failed to find carousel file: ", defFile
@@ -589,6 +591,9 @@ class fitData:
             i0 = np.sum(at_se_finite)
             #
             for sample in range(nsamples):
+                # skip masked samples
+                if self.carInfo.mask[sample]:
+                    continue
                 widSam = self.carInfo.sampWidth[sample]
                 #if sample < nsamples-1:
                 attSam = widSam*self.carInfo.filterAtt[sample].getMu()[:len(xe)]
