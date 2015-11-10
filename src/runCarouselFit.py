@@ -1,6 +1,13 @@
 """ Control file to run simple carousel analysis and return
     attenuation correction function. Based on IDL code by Anthony
     Evershed.
+
+    This is the command line interface which is executed by:
+       python ../src/runCarouselFit.py
+    within the "test" directory. The location is important since the
+    code assumes that spectral data is available in the "spectra"
+    subdirectory which is currently in test.
+    Most of the fitting operations are implemented in the file carouselUtils.py.
 """
 import sys
 import os.path
@@ -180,8 +187,17 @@ def showCor(string):
         plt.plot(xtab[line,:],ytab,xval,yval,':')
         plt.xlabel('Observed log attenuation ratio')
         plt.ylabel('Effective single energy log attenuation ratio')
-    # add the x=y line for comparison
+    # add the x=y line for comparison with circles for fit points
+    nsamp = len(carouselData.mask)-1
+    xarr = np.zeros(nsamp)
+    count = 0
+    for i in range(nsamp):
+        if not carouselData.mask[i]:
+            xarr[count] = carouselCal.getAvAtten(linevals[0],i)
+            count = count+1
+            #print "mask ",i,"t",carouselCal.getAvAtten(linevals[0],i)
     plt.plot([0.0,mymax],[0.0,mymax],'r--')
+    plt.plot(xarr,xarr,'ro')
     plt.draw()
     plt.show(block=False)
 
@@ -320,6 +336,8 @@ def fitAtt(string):
     for line in range(nlines):
         sumsq = 0.
         for sample in range(samples):
+            if carouselData.mask[sample]:
+                continue
             sumsq += (fit.atten[line,sample] - carouselCal.getAvAtten(line,sample) ) ** 2
         ofile.write(' {0:5d}  {1:12.6f}\n'.format(line,sumsq))
         lsumsq.append(sumsq)
@@ -456,6 +474,32 @@ def setCorMat(words):
     except:
         print "error reading material type"
     
+def mask(words):
+    """ show or set a mask array which is used to define if some of the sample data
+        is not to be used in the fit. e.g. "mask 7" will mean sample 7 is omitted
+        from the fit. "mask off" will restore all samples to the fit.
+    """
+    global carouselData, carouselCal
+    if carouselData== None:
+        print "must load data first"
+        return
+    if len(words) == 1:
+        print "Mask = ",carouselData.mask
+    elif words[1] == "off":
+        carouselData.mask.fill(False)
+    else:
+        try:
+            for i in range(len(words)-1):
+                num = int(words[i+1])
+                if num > 0:
+                     carouselData.mask[num-1] = True
+                elif num < 0:
+                     carouselData.mask[-num-1] = False
+                else:
+                     print "Warning: label 0 ignored"
+        except:
+            print "Error: bad value in list"
+        
 
 # Set of commands that are implemented and the corresponding function names.
 # Additional commands and functions can be added here.
@@ -473,6 +517,7 @@ cmd_switch = { "load":loadAll,
                "setcormat":setCorMat,
                "debug":debugToggle,
                "fitsamples":setSamplesToFit,
+               "mask":mask,
                "quit":quitCarousel,
                "help":helpCar,
                }
