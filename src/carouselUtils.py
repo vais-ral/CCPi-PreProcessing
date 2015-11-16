@@ -463,17 +463,23 @@ class fitData:
         self.verbose = False
         # define the fitting parameters and their global/local status
         self.varFilter = -1
+        # check if we have filter of material defMat
         for i in carCal.filterMaterial:
             #print carCal.filterMaterial[i]
             if defMat == carCal.filterMaterial[i]:
                 self.varFilter = i
                 self.defFilterMat = defMat
-                self.defFilter = 'global'
+                # this value not used
+                #self.defFilter = 'global'
+        # if defMat not found, use first material in list, if any
         if self.varFilter==-1:
-            print "** can't find fit filter: ", defMat
+            print "default filter: ", defMat," not found"
             if len(carCal.filterMaterial)>0:
                 self.defFilterMat=carCal.filterMaterial[0]
-                print "using material = ",self.defFilterMat
+                self.varFilter = 0
+                print "using material = ",self.defFilterMat," for fitting"
+            else:
+                print "no filter material present, hence cannot fit this"
             # self.isValid = False
         self.atten = np.zeros([self.carCal.lines,self.carInfo.getSamples()])
         #if len([m for m in carCal.filterMaterial if defMat in m]) > 0 :
