@@ -333,12 +333,17 @@ def fitAtt(string):
     # find average and max error for each line
     rfile.write('polyfits:\n')
     lsumsq = []
+    avatt = np.zeros((2,samples))
+    count = 0
     for line in range(nlines):
         sumsq = 0.
         for sample in range(samples):
             if carouselData.mask[sample]:
                 continue
             sumsq += (fit.atten[line,sample] - carouselCal.getAvAtten(line,sample) ) ** 2
+            if line==0:
+                avatt[0,sample] = carouselCal.getAvAtten(line,sample)
+                avatt[1,sample] = fit.atten[line,sample]
         ofile.write(' {0:5d}  {1:12.6f}\n'.format(line,sumsq))
         lsumsq.append(sumsq)
         sumtot += sumsq
@@ -355,6 +360,18 @@ def fitAtt(string):
     plt.plot(lsumsq)
     plt.xlabel('line number')
     plt.ylabel('mean sq error')
+    plt.draw()
+    plt.show(block=False)
+    #
+    plt.figure(FIG_ATTCOMP)
+    plt.subplot(211)
+    plt.plot(avatt[0,:],'bx')
+    plt.plot(avatt[1,:],'r+')
+    plt.xlabel('sample number')
+    plt.ylabel('log(I0/I)')
+    plt.subplot(212)
+    plt.plot(avatt[0,:]-avatt[1,:],'bo')
+    plt.ylabel('err log(I0/I)')
     plt.draw()
     plt.show(block=False)
     ofile.close()
@@ -500,6 +517,29 @@ def mask(words):
         except:
             print "Error: bad value in list"
         
+def transform(words):
+    """ TEST code to try and fix up RCaH data; this is only a fudge; must get right data
+        in first place, Assume we have "I" data and want log(I0/I) values, where I0 is a
+        guess provided by the user.
+    """
+    global carouselData, carouselCal
+    if len(words)<2:
+        print "Must provide I0 value"
+        return
+    I0 = float(words[1])
+    nsamp = len(carouselData.mask)-1
+    for i in range(nsamp):
+        z = carouselCal.getImage(i)
+        zerocount = sum(sum(z<=0))
+        if zerocount>0:
+            print "zeros for sample ",i," are ",zerocount
+        z[z<=0] = 1e-4
+        z = np.log(z)
+        z = np.log(I0) - z
+        carouselCal.getImage(i)[:,:] = z
+        #carouselCal.getImage(nsamp)[:,:] = - np.log(carouselCal.getImage(nsamp)[:,:])
+        # np.log(I0)
+        
 
 # Set of commands that are implemented and the corresponding function names.
 # Additional commands and functions can be added here.
@@ -520,6 +560,7 @@ cmd_switch = { "load":loadAll,
                "mask":mask,
                "quit":quitCarousel,
                "help":helpCar,
+               "transform":transform,
                }
 
 # set figures to use for different plots
@@ -528,6 +569,7 @@ FIG_ATT1D = "CarouselLines"
 FIG_SPEC = "Spectra"
 FIG_IMG = "CarouselImages"
 FIG_ERR = "ErrorInFit"
+FIG_ATTCOMP = "ObservedVsFittedAtten"
 # simple command line loop to allow loading of data and run
 
 # of fitting code.
