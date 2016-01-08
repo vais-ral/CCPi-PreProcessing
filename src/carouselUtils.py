@@ -698,7 +698,10 @@ class fitData:
                 attout[line,count] = np.log(i0/i_sample)
                 count = count+1
             #
-            polyfit[line,0:odpoly+1] = np.polyfit(attout[line,1:],attin[1:]/attout[line,1:],odpoly)
+            try:
+                polyfit[line,0:odpoly+1] = np.polyfit(attout[line,1:],attin[1:]/attout[line,1:],odpoly)
+            except:
+                print "*** Polynomial fit of result failed"
         #
         # following carousel.pro, attout is the apparent attenuation or the x-axis of our correction
         # graph. the y-axis should be the actual attenuation at monochromatic energy corEn for the
