@@ -1,0 +1,16 @@
+# data for one calibration run
+70 		# voltage was 45
+22		# guess at take off angle
+W		# target material
+19.25           # target density
+2000		# image res rows
+2000		# image res lines
+carouselData/crown70kev.raw		# image file
+uint16		# data type in image file
+1		# number of filters
+Cu 		# filter material
+0.0012		# filter width
+2.698		# filter density
+CsI		# detector material
+0.01		# starting value for detector thickness
+4.51		# detector density
