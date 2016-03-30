@@ -14,6 +14,7 @@ import os.path
 import logging
 import timeit
 import numpy as np
+import itertools as it
 from numpy.polynomial.polynomial import polyval
 #from carouselUtils import *
 import carouselUtils as cu
@@ -22,6 +23,8 @@ try:
 except ImportError:
     sys.exit("Error: cant find matplotlib")
 import pdb
+
+markerErr = it.cycle((',', '+', '.', 'o', '*'))
 
 def getAtt(dw,dcu,dal,dti,dcsi,me):
     """ test function to evaluate attenuation """
@@ -331,7 +334,7 @@ def fitAtt(string):
     # polynomial fit to these curves for each line.
     xtab,ytab,polyfit = fit.linesPolyFit(res,corMat,corEn,300,12.0)
     # find average and max error for each line
-    rfile.write('polyfits:\n')
+    rfile.write('polyfits '+str(polyfit.shape[0])+" "+str(polyfit.shape[1])+"\n")
     lsumsq = []
     avatt = np.zeros((2,samples))
     count = 0
@@ -353,6 +356,11 @@ def fitAtt(string):
             print "Line: ",line," ave error:",sumsq
         # save poly data to param.log
         rfile.write('{0:5d} '.format(line)+str(polyfit[line,:])+'\n')
+    # write data in binary file
+    bfile = open("polyfit.npz","wb")
+    np.save(bfile,polyfit)
+    bfile.close()
+    #
     print "average error: ",sumtot/nlines
     print "max error: ",summax
     rfile.write("average error: {0:12.6f}\nmax error: {1:12.6f}\n".format(sumtot/nlines,summax))
@@ -366,11 +374,12 @@ def fitAtt(string):
     plt.figure(FIG_ATTCOMP)
     plt.subplot(211)
     plt.plot(avatt[0,:],'bx')
-    plt.plot(avatt[1,:],'r+')
+    mark = markerErr.next()
+    plt.plot(avatt[1,:],marker=mark)
     plt.xlabel('sample number')
     plt.ylabel('log(I0/I)')
     plt.subplot(212)
-    plt.plot(avatt[0,:]-avatt[1,:],'bo')
+    plt.plot(avatt[0,:]-avatt[1,:],marker=mark)
     plt.ylabel('err log(I0/I)')
     plt.draw()
     plt.show(block=False)
@@ -539,6 +548,39 @@ def transform(words):
         carouselCal.getImage(i)[:,:] = z
         #carouselCal.getImage(nsamp)[:,:] = - np.log(carouselCal.getImage(nsamp)[:,:])
         # np.log(I0)
+
+##def applyCorrection(words):
+##    """ Apply the fitted correction polnomials to a data file. Here we assume a raw file
+##        input of 32 bit floats. First arg is filename. If 2nd argument present it is taken
+##        to be I0 for transform data-> ln ( I0/data )
+##    """
+##    global carouselData, carouselCal
+##    if carouselData== None:
+##        print "must load data first"
+##        return
+##    if len(words)<2:
+##        print "Must provide file name"
+##        return
+##    if len(words)==3:
+##        I0 = float(words[2])
+##    else:
+##        I0 = 0
+##    nsamp = carouselCal.nsamp
+##    rows = carouselCal.rows
+##    lines = carouselCal.lines
+##    if os.path.isfile(imageFile):
+##        with open(imageFile, 'rb') as fl:
+##            image = np.fromfile(fl, dtype = "float32",
+##                                       count = rows*lines*nsamp).reshape(nsamp, lines, rows)
+##        else:
+##            print "Image file not found!: ", imageFile
+##            return
+##    if I0>0:
+##        image = log(I0) - np.log( image )
+#    for line in range(lines):
+#        yval = polyval( image,polyfit[line,::-1])
+    
+
         
 
 # Set of commands that are implemented and the corresponding function names.
