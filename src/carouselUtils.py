@@ -7,6 +7,9 @@ classes:
     fitData: object with methods and data related to the fitting process
     
 """
+# just for reading 16 bit images and conversion to log(I0/I)
+from __future__ import division
+
 import sys
 import os
 import logging
@@ -312,9 +315,23 @@ class carouselCalibrationData:
 
     def __readImageFile(self, imageFile):
         if os.path.isfile(imageFile):
-            with open(imageFile, 'rb') as fl:
-                self.image = np.fromfile(fl, dtype = self.imageFileFormat,
-                                       count = self.rows*self.lines*self.samples).reshape(self.samples, self.lines, self.rows)
+            if self.imageFileFormat == "uint16":
+                # if raw int16 data, assume first image is flat field and normalise rst of image by this and do log
+                nimages = self.samples+1
+                with open(imageFile, 'rb') as fl:
+                    tmpimage = np.fromfile(fl, dtype = self.imageFileFormat,
+                                 count = self.rows*self.lines*nimages).reshape(nimages, self.lines, self.rows)
+                self.image = np.zeros(self.rows*self.lines*self.samples,dtype=float).reshape(self.samples, self.lines, self.rows)
+                # note - imported division from _future_ to avoid int div
+                for i in range(nimages-1):
+                    self.image[i,:,:] = np.log( tmpimage[0,:,:] / tmpimage[i+1,:,:] )
+                    
+            else:
+                # assume float data already transformed by I0 and log
+                with open(imageFile, 'rb') as fl:
+                    self.image = np.fromfile(fl, dtype = self.imageFileFormat,
+                                 count = self.rows*self.lines*self.samples).reshape(self.samples, self.lines, self.rows)
+                
         else:
             print "Image file not found!: ", imageFile
 
@@ -440,7 +457,7 @@ class carouselCalibrationData:
 
 
 class fitData:
-    """ This object contain fit related data and functions
+    """ This object contains fit related data and functions
     """
 
     def __init__(self, carInfo, carCal, defMat):
@@ -482,6 +499,7 @@ class fitData:
                 print "no filter material present, hence cannot fit this"
             # self.isValid = False
         self.atten = np.zeros([self.carCal.lines,self.carInfo.getSamples()])
+        self.objFnCalls = 0
         #if len([m for m in carCal.filterMaterial if defMat in m]) > 0 :
         #    self.defMat=defMat
         #    self.defFilter='global'
@@ -623,6 +641,20 @@ class fitData:
                 self.atten[line,sample] = np.log(i0/i_sample)
         if self.verbose:
             print "tw,dw,fw,sumSq: ",tw[0],dw[0],fw[0],np.sum(ans)
+            # for debugging we print the normalised detector response for the current parameters
+            plotFreq=10
+            if self.objFnCalls%plotFreq == 0:
+                callCount=0
+                plt.figure('NormRespone')
+                plt.xlabel('energy')
+                plt.ylabel('Normalised response')
+                # map nans to zero for plotting
+                at_se[np.isnan(at_se)] = 0.
+                plt.plot(xe,at_se/i0)
+                plt.draw()
+                plt.show(block=False)
+        self.objFnCalls=self.objFnCalls+1
+
         #
         # return vector of squared errors: length=samples*lines
         return ans
