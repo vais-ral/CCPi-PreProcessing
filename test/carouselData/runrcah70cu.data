@@ -7,10 +7,13 @@ W		# target material
 2000		# image res lines
 carouselData/crown70kev.raw		# image file
 uint16		# data type in image file
-1		# number of filters
-Cu 		# filter material
-0.0012		# filter width
-2.698		# filter density
+2		# number of filters
+Al              # filter material
+0.15            # filter width
+2.698           # filter density
+Cu              # filter material
+0.001           # filter width - 0.1
+8.92            # filter density
 CsI		# detector material
 0.01		# starting value for detector thickness
 4.51		# detector density
