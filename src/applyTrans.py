@@ -101,16 +101,27 @@ def processTif(infile,outpre,polyc,rows,lines,whiteLevel,debug):
     # Results output written to outfile in same tif format.
     #
     try:
-        from PIL import Image
+        #from PIL import Image
+        import tifffile as tf
     except:
-        print("Import PIL failed")
+        #print("Import PIL failed")
+        print("Import tifffile failed")
         sys.err(1)
-    im = Image.open(infile)
-    imArr = np.array(im)
+    #im = Image.open(infile)
+    imArr = tf.imread(infile)
+    if len(imArr[0,:]) != lines or len(imArr[:,0]) != rows:
+        print("* Error: tiff image size is ",len(imArr[0,:])," by ",len(imArr[:,0]))
+        print("Must set lines and rows the same")
+        sys.exit(1)
+    #imArr = np.array(im)
     if whiteLevel==0:
         whiteLevel = imArr.max()
         if debug:
            print("Using whiteLevel=",whiteLevel)
+    #
+    if debug:
+        pdb.set_trace()
+    #
     imLn = np.log(float(whiteLevel)/imArr)
 
     for l in range(lines):
@@ -124,10 +135,11 @@ def processTif(infile,outpre,polyc,rows,lines,whiteLevel,debug):
     imCor16 = np.array(imCor,dtype='uint16')
     if debug:
         print("imCor16: ",imCor16[0:2,0:2])
-    imOut = Image.fromarray(imCor16)
+    #imOut = Image.fromarray(imCor16)
     #print("infile=",infile) #," outpre=",outpre)
     outfile = outpre+infile
-    imOut.save(outfile)
+    #imOut.save(outfile)
+    tf.imsave(outfile,imCor16)
 
 def correct(lineData,polyData):
     return nppoly.polyval(lineData,polyData)
