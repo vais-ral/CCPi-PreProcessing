@@ -71,7 +71,7 @@ def showImg(string):
         return
     try:
         width = carouselCal.width
-    except NameError:
+    except:
         print "** must read calibration data first"
         return
     plt.figure(FIG_IMG)
@@ -92,17 +92,24 @@ def showSpec(string):
         plt.plot(xSpec.getE(), yval,label='raw')
         if carouselCal.filterCount>0:
             n = len(xSpec.getS())
-            attSpec = np.copy(yval)
+            attSpec = np.copy(yval)*norm
             for i in range(carouselCal.filterCount):
                 attSpec = attSpec*np.exp(-carouselCal.filterAtten[i].getMu()[0:n]*carouselCal.filterWidth[i])
                 #print "attn0-1=",carouselCal.filterAtten[i].getMu()[0:9]
                 #print "width=",carouselCal.filterWidth[i]
-            norm = np.sum(attSpec)
-            attSpec = attSpec/norm
+            norma = np.sum(attSpec)
+            attSpec = attSpec/norma
             plt.plot(xSpec.getE(),attSpec,label='filtered')
             meanE = np.sum(attSpec*xSpec.getE())
             dev2 = np.sum(attSpec*xSpec.getE()*xSpec.getE()) - meanE*meanE
-            print "mean E =",meanE," std dev = ",np.sqrt(dev2)
+            print "mean E =",meanE," std dev = ",np.sqrt(dev2)," ratio = ",norm/norma
+            nmean = int(meanE/(xSpec.getE()[1]-xSpec.getE()[0]))
+            print "nmean = ",nmean," ratio at nmean = ",xSpec.getS()[nmean]/(attSpec[nmean]*norma)
+            detWid =carouselCal.detectorWidth
+            attDet = detWid*carouselCal.detectorAtten.getMu()[:len(attSpec)]
+            resSpec = attSpec*xSpec.getE()*(1.-np.exp(-attDet))
+            resSpec = resSpec/np.sum(resSpec)
+            plt.plot(xSpec.getE(),resSpec,label='response')
         if len(string) > 1 and string[1] == 'log':
             plt.yscale('log')
         #else:
@@ -258,6 +265,12 @@ def fitAtt(string):
         """
     global carouselData, carouselCal, xSpec, debug, vary
     global res,xtab,ytab,polyfit
+    if carouselData == None or carouselCal == None:
+        print "must load data first"
+        return
+    if not carouselData.valid or not carouselCal.valid:
+        print "data not correctly loaded"
+        return
     defMat = "Cu"
     fit = cu.fitData(carouselData, carouselCal, defMat)
     fit.verbose = debug
@@ -304,7 +317,11 @@ def fitAtt(string):
     print "time=",tim
     print "dofit returned: "
     print " best fit values = ",res
-    print " ier = ",ier
+    if ier>0 and ier<5:
+        print " ier = ",ier
+    else:
+        print "** Fit failed: ier=",ier
+        print "   message=",mesg
     print " iterations = ",infodict["nfev"]
     # measure error
     samples = carouselCal.samples
@@ -474,6 +491,16 @@ def helpCar(cmd, string):
     print " "
     print "To execute script file use: read <filename>"
     print " "
+    print "The required input is a set of images of test pieces imaged at the exact same"
+    print "Xray settings as the sample. These may be in a carousel or a crown device. The"
+    print "details of each test item (material/density/thickness) must be provided in a"
+    print "file in './carouselData'. Using these images a fit is made to the effective"
+    print "energy response function of the Xray source/detector. Using this fit a correction"
+    print "curve can be determined to map from observed attenuation to true attenuation of the"
+    print "dominant Xray material of the sample. This will be inaccurate on samples with muliple"
+    print "material types in them. The output is a file of polynomial fits giving the corrections"
+    print "which can be used in the python program 'applyTransForm.py'"
+    print " "
 
 def setCorMat(words):
     """ Input the name of the material that will be the target of the attenuation correction
@@ -613,8 +640,12 @@ FIG_IMG = "CarouselImages"
 FIG_ERR = "ErrorInFit"
 FIG_ATTCOMP = "ObservedVsFittedAtten"
 # simple command line loop to allow loading of data and run
-
 # of fitting code.
+
+global carouselData, carouselCal
+carouselData = None
+carouselCal = None
+
 if __name__ == "__main__":
     logging.basicConfig(level = logging.WARNING)
     nargs = len(sys.argv)
