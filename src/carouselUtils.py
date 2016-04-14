@@ -240,12 +240,16 @@ class carouselCalibrationData:
         self.valid = False
         self.__readCalFile(calFile)
         if self.valid:
-            self.__readImageFile(self.imageFile)
-            self.__setAverages()
-            self.width = 100
-            self.__cacheAveSet = False
-            self.__cacheAve = np.zeros(shape=(self.samples, self.lines))
-            logging.debug('initialised cacheAve')
+            try:
+                self.__readImageFile(self.imageFile)
+                self.__setAverages()
+                self.width = 100
+                self.__cacheAveSet = False
+                self.__cacheAve = np.zeros(shape=(self.samples, self.lines))
+                logging.debug('initialised cacheAve')
+            except:
+                self.valid = False
+                logging.debug('reading data failed')
 
     def __readCalFile(self, calFile):
         """ read calibration data file, and from that the actual image data"""
@@ -329,8 +333,11 @@ class carouselCalibrationData:
             else:
                 # assume float data already transformed by I0 and log
                 with open(imageFile, 'rb') as fl:
-                    self.image = np.fromfile(fl, dtype = self.imageFileFormat,
+                    try:
+                        self.image = np.fromfile(fl, dtype = self.imageFileFormat,
                                  count = self.rows*self.lines*self.samples).reshape(self.samples, self.lines, self.rows)
+                    except:
+                        print "Failed in reading/converting image file: check data"
                 
         else:
             print "Image file not found!: ", imageFile
@@ -550,7 +557,8 @@ class fitData:
         dwidth = np.exp( dwidth ) # force >0 by working in log space
         fwidth=np.polyval(x0[nt+nd:nt+nd+nf],lines)
         if ne>0:
-            ecoeffs = xe + xe*xe*np.polyval(x0[nt+nd+nf:],xe)
+            # testing square to force >=0
+            ecoeffs = xe + xe*xe*(np.polyval(x0[nt+nd+nf:],xe))**2
         else:
             ecoeffs = xe
         return twidth,dwidth,fwidth,ecoeffs
