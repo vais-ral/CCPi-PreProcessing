@@ -538,7 +538,7 @@ class fitData:
     def calcWidths(self,x0,nlines,xe):
         """ simple function to return the 3 widths for the target,
             the detector and the filter from the set of fitting
-            variables. Each is assumed to be a polnomial of some
+            variables. Each is assumed to be a polynomial of some
             order in the line number. Global varables are zero
             order polynomials """
         lines=np.array(range(nlines),dtype="double")
