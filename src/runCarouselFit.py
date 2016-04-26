@@ -80,7 +80,9 @@ def showImg(string):
 
 
 def showSpec(string):
-    """ plot spectra """
+    """ plot spectra of source along with filtered spectra and response spectra.
+        Note that these just use input data, not fitted data.
+    """
     if carouselCal == None:
         print "must load data first"
         return
@@ -102,9 +104,11 @@ def showSpec(string):
             plt.plot(xSpec.getE(),attSpec,label='filtered')
             meanE = np.sum(attSpec*xSpec.getE())
             dev2 = np.sum(attSpec*xSpec.getE()*xSpec.getE()) - meanE*meanE
-            print "mean E =",meanE," std dev = ",np.sqrt(dev2)," ratio = ",norm/norma
-            nmean = int(meanE/(xSpec.getE()[1]-xSpec.getE()[0]))
-            print "nmean = ",nmean," ratio at nmean = ",xSpec.getS()[nmean]/(attSpec[nmean]*norma)
+            print "For filtered spectrum:"
+            print "mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",norm/norma
+            dE = xSpec.getE()[1]-xSpec.getE()[0]
+            nmean = int(meanE/dE)
+            print " atten ratio at mean energy = ",xSpec.getS()[nmean]/(attSpec[nmean]*norma)
             detWid =carouselCal.detectorWidth
             attDet = detWid*carouselCal.detectorAtten.getMu()[:len(attSpec)]
             resSpec = attSpec*xSpec.getE()*(1.-np.exp(-attDet))
@@ -347,6 +351,7 @@ def fitAtt(string):
     summax=0.
     #if debug:
     #    pdb.set_trace()
+
     # calcualte the attenuation(corEn) vs attenuation(observed) and return
     # polynomial fit to these curves for each line.
     xtab,ytab,polyfit = fit.linesPolyFit(res,corMat,corEn,300,12.0)
