@@ -241,6 +241,7 @@ class carouselCalibrationData:
         self.__readCalFile(calFile)
         if self.valid:
             try:
+                self.whiteLevel = 0
                 self.__readImageFile(self.imageFile)
                 self.__setAverages()
                 self.width = 100
@@ -327,10 +328,21 @@ class carouselCalibrationData:
                                  count = self.rows*self.lines*nimages).reshape(nimages, self.lines, self.rows)
                 self.image = np.zeros(self.rows*self.lines*self.samples,dtype=float).reshape(self.samples, self.lines, self.rows)
                 # note - imported division from _future_ to avoid int div
+
+                # assume that the first image is the white level, I0, a constant over the image. To impose this assumption
+                # we take the average value over the first (flat field, shading corrected) image. This is only set for uint16
+                # data; it is not known for float32 data.
+                whiteLev = np.average(tmpimage[0,:,:])
+                self.whiteLevel = whiteLev
                 for i in range(nimages-1):
-                    self.image[i,:,:] = np.log( tmpimage[0,:,:] / tmpimage[i+1,:,:] )
+                    # catch zero data:
+                    if np.min(tmpimage[i+1,:,:])==0:
+                        imt = tmpimage[i+1,:,:]
+                        imt[imt==0] = np.mean(imt)
+                        logging.warning('zero data replaced in image %d',i+1)
+                    self.image[i,:,:] = np.log( whiteLev / tmpimage[i+1,:,:] )
                     
-            else:
+            elif self.imageFileFormat == "float32":
                 # assume float data already transformed by I0 and log
                 with open(imageFile, 'rb') as fl:
                     try:
@@ -338,6 +350,8 @@ class carouselCalibrationData:
                                  count = self.rows*self.lines*self.samples).reshape(self.samples, self.lines, self.rows)
                     except:
                         print "Failed in reading/converting image file: check data"
+            else:
+                print "** error: image format name ",self.imageFileFormat," not recognised"
                 
         else:
             print "Image file not found!: ", imageFile
@@ -360,14 +374,20 @@ class carouselCalibrationData:
         self.__centre = np.zeros(self.samples*self.lines).reshape(self.samples,
                                self.lines)
         for samp in range(self.samples):
+            warned = False
             for li in range(self.lines):
-                self.__centre[samp, li] = self.__getCentrePos(li, samp)
+                self.__centre[samp, li] = self.__getCentrePos(li, samp, warned)
 
-    def __getCentrePos(self, line, sample):
+    def __getCentrePos(self, line, sample, warned):
         """ do a weighted average of position by signal to find the centre of
             the signal, in pixels"""
         vals = self.image[sample,line,:]
         meanpt = np.sum(np.arange(len(vals))*vals)/np.sum(vals)
+        if meanpt>0.75*np.size(vals) or meanpt<0.25*np.size(vals):
+            meanpt = np.size(vals)*0.5
+            if not warned:
+                logging.warning('reset getCentrePos to %f for sample %d',meanpt,sample)
+                warned = True
         return meanpt
 
     def getCentrePos(self, line, sample):
