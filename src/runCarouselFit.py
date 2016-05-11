@@ -13,6 +13,7 @@ import sys
 import os.path
 import logging
 import timeit
+import time
 import numpy as np
 import itertools as it
 from numpy.polynomial.polynomial import polyval
@@ -50,6 +51,8 @@ def loadAll(string):
         print "syntax: load <cardef> <carrun>"
         return
     
+    if debug:
+        pdb.set_trace()
     carouselData = cu.carousel(string[1])
     if not carouselData.isValid():
         print "** failed to load carousel data"
@@ -83,6 +86,7 @@ def showSpec(string):
     """ plot spectra of source along with filtered spectra and response spectra.
         Note that these just use input data, not fitted data.
     """
+    global res,fit
     if carouselCal == None:
         print "must load data first"
         return
@@ -95,10 +99,27 @@ def showSpec(string):
         if carouselCal.filterCount>0:
             n = len(xSpec.getS())
             attSpec = np.copy(yval)*norm
+            try:
+                tw,dw,fw,ec = fit.calcWidths(res,1,xSpec.getE())
+                varf = fit.varFilter
+            except:
+                print("No fit, using preset values")
+                tw= [0.]
+                dw= [0.1]
+                varf = 1 # maybe?
+                fw= [carouselCal.filterWidth[varf]]
+                ec = xSpec.getE()
+            line = 0
             for i in range(carouselCal.filterCount):
-                attSpec = attSpec*np.exp(-carouselCal.filterAtten[i].getMu()[0:n]*carouselCal.filterWidth[i])
-                #print "attn0-1=",carouselCal.filterAtten[i].getMu()[0:9]
-                #print "width=",carouselCal.filterWidth[i]
+                # allow for unphysical -ve filter thicknesses
+                if varf==i:
+                    expo = -carouselCal.filterAtten[i].getMu()[0:n]*fw[line]
+                else:
+                    expo = -carouselCal.filterAtten[i].getMu()[0:n]*carouselCal.filterWidth[i]
+                expo[expo>600] = 600
+                attSpec = attSpec*np.exp(expo)
+                #attSpec = attSpec*np.exp(-carouselCal.filterAtten[i].getMu()[0:n]*carouselCal.filterWidth[i])
+            #
             norma = np.sum(attSpec)
             attSpec = attSpec/norma
             plt.plot(xSpec.getE(),attSpec,label='filtered')
@@ -106,14 +127,27 @@ def showSpec(string):
             dev2 = np.sum(attSpec*xSpec.getE()*xSpec.getE()) - meanE*meanE
             print "For filtered spectrum:"
             print "mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",norm/norma
+            #
             dE = xSpec.getE()[1]-xSpec.getE()[0]
             nmean = int(meanE/dE)
             print " atten ratio at mean energy = ",xSpec.getS()[nmean]/(attSpec[nmean]*norma)
-            detWid =carouselCal.detectorWidth
+            #
+            expo = -carouselCal.targetAtten.getMu()[0:n]*tw[line]
+            expo[expo>600] = 600
+            attSpec = attSpec*np.exp(expo)
+            detWid = dw[line]
             attDet = detWid*carouselCal.detectorAtten.getMu()[:len(attSpec)]
-            resSpec = attSpec*xSpec.getE()*(1.-np.exp(-attDet))
+            resSpec = attSpec*ec*(1.-np.exp(-attDet))
             resSpec = resSpec/np.sum(resSpec)
             plt.plot(xSpec.getE(),resSpec,label='response')
+            meanE = np.sum(resSpec*xSpec.getE())
+            dev2 = np.sum(resSpec*xSpec.getE()*xSpec.getE()) - meanE*meanE
+            print "For response spectrum:"
+            print "mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",norm/norma
+            #
+            if carouselCal.whiteLevel>0:
+                print "Calculation used whiteLevel = ",carouselCal.whiteLevel
+
         if len(string) > 1 and string[1] == 'log':
             plt.yscale('log')
         #else:
@@ -215,7 +249,7 @@ def showCor(string):
     plt.draw()
     plt.show(block=False)
 
-def setFilters(string):
+def setFilter(string):
     try:
         if carouselCal.isValid():
             #print "have carouselCal - str: ",string
@@ -232,34 +266,15 @@ def setFilters(string):
                         carouselCal.filterWidth[i] = val
                         print "set ",mat," filter width to ",val
                         return
+                print("filter type not found")
             else:
-                print "filter, width:"
+                print("Filters set:")
+                print("filter, width:")
                 for i in range(carouselCal.filterCount):
                     print carouselCal.filterMaterial[i], ",", carouselCal.filterWidth[i]
     except:
         print "no carousel data file loaded"
 
-def calcAtt(string):
-    print "Not implemented"
-    pass
-
-def setSamplesToFit(string):
-    """ set or print the number of samples to be fitted to"""
-    if carouselCal == None:
-        print "must load data first"
-        return
-    if len(string) > 1:
-        try:
-            samples = int(string[1])
-        except:
-            print "must give integer"
-            return
-        if samples>0:
-            # should not be two values here
-            carouselCal.samples=samples
-            carouselData.numSamples = samples+1 # this includes the "null" sample, which is not read
-    print "samples set to ",carouselCal.samples
-        
 
 def fitAtt(string):
     """ Check necessary data has been set then fit model to carousel data.
@@ -268,7 +283,7 @@ def fitAtt(string):
         correction purposes.
         """
     global carouselData, carouselCal, xSpec, debug, vary
-    global res,xtab,ytab,polyfit
+    global res,xtab,ytab,fit,polyfit
     if carouselData == None or carouselCal == None:
         print "must load data first"
         return
@@ -291,11 +306,11 @@ def fitAtt(string):
         # Initial values for the zero order terms are
         # given here, the higher terms (if any) are set to zero.
         offset = vary[0]
-        x[offset] = float(string[2])
+        x[offset] = startX[0]
         offset = offset+1+vary[1]
-        x[offset] = float(string[3])
+        x[offset] = startX[1]
         offset = offset+1+vary[2]
-        x[offset] = float(string[4])
+        x[offset] = startX[2]
         nlines = int(string[1])
     elif len(string) == 2:
         nlines = int(string[1])
@@ -349,12 +364,12 @@ def fitAtt(string):
     rfile.write('\n')
     sumtot=0.
     summax=0.
-    #if debug:
-    #    pdb.set_trace()
 
-    # calcualte the attenuation(corEn) vs attenuation(observed) and return
+    # calculate the attenuation(corEn) vs attenuation(observed) and return
     # polynomial fit to these curves for each line.
-    xtab,ytab,polyfit = fit.linesPolyFit(res,corMat,corEn,300,12.0)
+    attLnWid = 14.0
+    attPts = 300
+    xtab,ytab,polyfit = fit.linesPolyFit(res,corMat,corEn,attPts,attLnWid)
     # find average and max error for each line
     rfile.write('polyfits '+str(polyfit.shape[0])+" "+str(polyfit.shape[1])+"\n")
     lsumsq = []
@@ -394,20 +409,34 @@ def fitAtt(string):
     plt.show(block=False)
     #
     plt.figure(FIG_ATTCOMP)
+    nsamp = len(avatt[0,:])
+    xnum = np.array(range(nsamp))+1
     plt.subplot(211)
-    plt.plot(avatt[0,:],'bx')
+    plt.plot(xnum,avatt[0,:],'bx')
     mark = markerErr.next()
-    plt.plot(avatt[1,:],marker=mark)
+    plt.plot(xnum,avatt[1,:],marker=mark)
     plt.xlabel('sample number')
     plt.ylabel('log(I0/I)')
     plt.subplot(212)
-    plt.plot(avatt[0,:]-avatt[1,:],marker=mark)
+    plt.plot(xnum,avatt[0,:]-avatt[1,:],marker=mark)
     plt.ylabel('err log(I0/I)')
     plt.draw()
     plt.show(block=False)
     ofile.close()
     rfile.close()
 
+def initGuess(string):
+    """ Set initial values to use for the variables of the target absortion width, detector
+    width and filter width """
+    global startX
+    try:
+        startX[0] = float(words[1])
+        startX[1] = float(words[2])
+        startX[2] = float(words[3])
+    except:
+        print("initguess requires 3 floating point values: dt, ln(dd) and df. dt is the target "+
+              "absortion width, ln(dd) is the log of detector width, and df the filter width.")
+    
 
 def setWidth(words):
     """ set the half width of area along row to be averaged"""
@@ -565,7 +594,9 @@ def transform(words):
     """
     global carouselData, carouselCal
     if len(words)<2:
-        print "Must provide I0 value"
+        print "transform command is a test command. Was used to map image intensity"
+        print " data I to log(I0/I), in the case where only I is provided. Now redundant"
+        print " as uint16 data is assumed to include I0 image at start and transform applied."
         return
     I0 = float(words[1])
     nsamp = len(carouselData.mask)-1
@@ -578,42 +609,7 @@ def transform(words):
         z = np.log(z)
         z = np.log(I0) - z
         carouselCal.getImage(i)[:,:] = z
-        #carouselCal.getImage(nsamp)[:,:] = - np.log(carouselCal.getImage(nsamp)[:,:])
-        # np.log(I0)
 
-##def applyCorrection(words):
-##    """ Apply the fitted correction polnomials to a data file. Here we assume a raw file
-##        input of 32 bit floats. First arg is filename. If 2nd argument present it is taken
-##        to be I0 for transform data-> ln ( I0/data )
-##    """
-##    global carouselData, carouselCal
-##    if carouselData== None:
-##        print "must load data first"
-##        return
-##    if len(words)<2:
-##        print "Must provide file name"
-##        return
-##    if len(words)==3:
-##        I0 = float(words[2])
-##    else:
-##        I0 = 0
-##    nsamp = carouselCal.nsamp
-##    rows = carouselCal.rows
-##    lines = carouselCal.lines
-##    if os.path.isfile(imageFile):
-##        with open(imageFile, 'rb') as fl:
-##            image = np.fromfile(fl, dtype = "float32",
-##                                       count = rows*lines*nsamp).reshape(nsamp, lines, rows)
-##        else:
-##            print "Image file not found!: ", imageFile
-##            return
-##    if I0>0:
-##        image = log(I0) - np.log( image )
-#    for line in range(lines):
-#        yval = polyval( image,polyfit[line,::-1])
-    
-
-        
 
 # Set of commands that are implemented and the corresponding function names.
 # Additional commands and functions can be added here.
@@ -623,14 +619,13 @@ cmd_switch = { "load":loadAll,
                "showconf":showCalConf,
                "showatt":showAtt,
                "showcor":showCor,
-               "setfilters":setFilters,
+               "setfilter":setFilter,
                "setwidth":setWidth,
-               "calcatt":calcAtt,
                "fitatt":fitAtt,
+               "initguess":initGuess,
                "vary":setVary,
                "setcormat":setCorMat,
                "debug":debugToggle,
-               "fitsamples":setSamplesToFit,
                "mask":mask,
                "quit":quitCarousel,
                "help":helpCar,
@@ -647,12 +642,16 @@ FIG_ATTCOMP = "ObservedVsFittedAtten"
 # simple command line loop to allow loading of data and run
 # of fitting code.
 
-global carouselData, carouselCal
+global carouselData, carouselCal, startX
 carouselData = None
 carouselCal = None
+startX = np.array([0.01,-6.0,0.01])
 
 if __name__ == "__main__":
-    logging.basicConfig(level = logging.WARNING)
+    logging.basicConfig(filename='runCarouselFit.log',level=logging.INFO)
+    localtime = time.asctime( time.localtime(time.time()) )
+    logging.info('started at '+localtime)
+
     nargs = len(sys.argv)
     debug = False
     carouselCal = None
