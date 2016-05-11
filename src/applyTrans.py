@@ -29,9 +29,10 @@ def checkArgs(argstr):
     rows=600
     whiteLevel = 0
     polyf = "polyfit.npz"
-    syntax = "applyTrans.py [-r rows -l lines -p poly.npz -w whiteLevel] [-d] file1.ext [filen.ext]"
+    bhtFile = ""
+    syntax = "applyTrans.py [-r rows -l lines -p poly.npz -w whiteLevel -x file.bht] [-d] [file1.ext] [filen.ext]"
     try:
-        opts, args = getopt.getopt(argstr,"hr:l:dp:w:",["rows=","lines=","debug","polyfit","whiteLevel"])
+        opts, args = getopt.getopt(argstr,"hr:l:dp:w:x:",["rows=","lines=","debug","polyfit","whiteLevel","xtekbht"])
     except getopt.GetoptError:
         print(syntax)
         sys.exit(2)
@@ -48,14 +49,16 @@ def checkArgs(argstr):
             polyf = arg
         elif opt in ("-w", "--whiteLevel"):
             whiteLevel = int(arg)
+        elif opt in ("-x", "--xtekbht"):
+            bhtFile = arg
         elif opt in ("-d", "--debug"):
             debug = True
-    return rows,lines,polyf,whiteLevel,debug,args
+    return rows,lines,polyf,whiteLevel,bhtFile,debug,args
 
-def processRaw(infile,outfile,polyc,rows,lines,debug):
+def processRaw(infile,outfile,polyC,rows,lines,debug):
     #
     # Read a binary raw file containing float32 data of the ln(I0/I) image data
-    # and apply the correction given by the polynomial(s) in polyc.
+    # and apply the correction given by the polynomial(s) in polyC.
     # Results output written to outfile in same raw format.
     #
     infi = open(infile,"rb")
@@ -72,28 +75,26 @@ def processRaw(infile,outfile,polyc,rows,lines,debug):
         except:
             print("Error reshaping block "+str(count))
             sys.exit(1)
-        if debug:
-            pdb.set_trace()
-        if len(polyc[:,0])==lines:
+        if len(polyC[:,0])==lines:
             print("Using "+str(lines)+" lines for correction")
         else:
             print("Using 1 line for correction")
         for l in range(lines):
             ln = 0
-            if len(polyc[:,0])==1:
+            if len(polyC[:,0])==1:
                 ln = 0
-            elif len(polyc[:,0])==lines:
+            elif len(polyC[:,0])==lines:
                 ln = l
-            img[l,:] = correct(img[l,:],polyc[ln,::-1])
+            img[l,:] = correct(img[l,:],polyC[ln,::-1])
         img.tofile(outfi)
         
     infi.close()
     outfi.close()
 
-def processTif(infile,outpre,polyc,rows,lines,whiteLevel,debug):
+def processTif(infile,outpre,polyC,rows,lines,whiteLevel,debug):
     #
     # Read a tif file containing uint16 data of "I" image data
-    # and apply the correction given by the polynomial(s) in polyc.
+    # and apply the correction given by the polynomial(s) in polyC.
     # White level "whiteLevel" must be provided.
     # Have to convert to float format for correction and retur to uint16
     # afterwards. A correction table in the reconstruction process would
@@ -119,18 +120,15 @@ def processTif(infile,outpre,polyc,rows,lines,whiteLevel,debug):
         if debug:
            print("Using whiteLevel=",whiteLevel)
     #
-    if debug:
-        pdb.set_trace()
-    #
     imLn = np.log(float(whiteLevel)/imArr)
 
     for l in range(lines):
         ln = 0
-        if len(polyc[:,0])==1:
+        if len(polyC[:,0])==1:
             ln = 0
-        elif len(polyc[:,0])==lines:
+        elif len(polyC[:,0])==lines:
             ln = l
-        imLn[l,:] = correct(imLn[l,:],polyc[ln,::-1])
+        imLn[l,:] = correct(imLn[l,:],polyC[ln,::-1])
     imCor = whiteLevel/np.exp(imLn)
     imCor16 = np.array(imCor,dtype='uint16')
     if debug:
@@ -144,8 +142,38 @@ def processTif(infile,outpre,polyc,rows,lines,whiteLevel,debug):
 def correct(lineData,polyData):
     return nppoly.polyval(lineData,polyData)
 
-print("Apply beam hardening corrections to image file")
-rows,lines,polyf,whiteLevel,debug,args = checkArgs(sys.argv[1:])
+def genbht(bhtFile,whiteLevel,polyC):
+    # Generate the bht file from the first polynomial data. Only one correction
+    # curve can be used in a bht file, so line wise correction is not possible.
+    # Any values above the whiteLevel are set as 1.0, i.e. no attenuation.
+    # Use first correction polynomial at present.
+    bhtf = open(bhtFile,"w")
+    fwl = float(whiteLevel)
+    values = 2**16
+    oatt = np.ones(values)
+    for l in range(values):
+        if l>=whiteLevel:
+            #bhtf.write("1.0\n")
+            oatt[l] = 1.0
+        elif l>0:
+            oatt[l] = fwl/l
+        else:
+            oatt[l] = fwl/0.5
+    oatt = np.log(oatt)
+    oatt = correct(oatt,polyC[0,::-1])
+    oatt = np.exp(oatt)
+    for l in range(values):
+        bhtf.write(str(oatt[l])+"\n")
+    bhtf.close()
+    print("bht data written to "+bhtFile)
+
+#
+
+print("Apply beam hardening corrections to image file OR generate bht file")
+rows,lines,polyf,whiteLevel,bhtFile,debug,args = checkArgs(sys.argv[1:])
+
+if debug:
+    pdb.set_trace()
 
 print("\nReading correction polynomials:")
 polyCoeffs = readPolyCoeff(polyf)
@@ -156,6 +184,14 @@ if type(polyCoeffs)==type(0):
 # actually 9th order.
 print("Number of polynomials: ",str(len(polyCoeffs[:,0]))," order: ",str(len(polyCoeffs[0,:])-1) )
 nargs = len(args)
+
+if bhtFile <> "":
+    print("generating .bht file")
+    if nargs>0:
+        print("Ignoring file arguments")
+    genbht(bhtFile,whiteLevel,polyCoeffs)
+    sys.exit(0)
+
 print("Number of input files:", nargs, " rows=",rows," lines=",lines)
 if nargs==0:
     sys.exit("No files to process")
