@@ -374,20 +374,17 @@ class carouselCalibrationData:
         self.__centre = np.zeros(self.samples*self.lines).reshape(self.samples,
                                self.lines)
         for samp in range(self.samples):
-            warned = False
             for li in range(self.lines):
-                self.__centre[samp, li] = self.__getCentrePos(li, samp, warned)
+                self.__centre[samp, li] = self.__getCentrePos(li, samp)
 
-    def __getCentrePos(self, line, sample, warned):
+    def __getCentrePos(self, line, sample):
         """ do a weighted average of position by signal to find the centre of
             the signal, in pixels"""
         vals = self.image[sample,line,:]
         meanpt = np.sum(np.arange(len(vals))*vals)/np.sum(vals)
         if meanpt>0.75*np.size(vals) or meanpt<0.25*np.size(vals):
             meanpt = np.size(vals)*0.5
-            if not warned:
-                logging.warning('reset getCentrePos to %f for sample %d',meanpt,sample)
-                warned = True
+            logging.info('reset getCentrePos to %f for sample %d',meanpt,sample)
         return meanpt
 
     def getCentrePos(self, line, sample):
@@ -576,9 +573,11 @@ class fitData:
         #dwidth=np.polyval(x0[nt+nd-1:nt:-1],lines)
         dwidth = np.exp( dwidth ) # force >0 by working in log space
         fwidth=np.polyval(x0[nt+nd:nt+nd+nf],lines)
+        eminv = 1.0/np.max(xe)
         if ne>0:
-            # testing square to force >=0
-            ecoeffs = xe + xe*xe*(np.polyval(x0[nt+nd+nf:],xe))**2
+            # This term should be constrained as >=0 for all xe but is not at present.
+            # -Ve values will give errors in output stage.
+            ecoeffs = xe + xe*xe*(np.polyval(x0[nt+nd+nf:],xe))
         else:
             ecoeffs = xe
         return twidth,dwidth,fwidth,ecoeffs
