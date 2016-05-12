@@ -27,22 +27,6 @@ import pdb
 
 markerErr = it.cycle((',', '+', '.', 'o', '*'))
 
-def getAtt(dw,dcu,dal,dti,dcsi,me):
-    """ test function to evaluate attenuation """
-    cuatt = np.zeros(me)
-    alatt = np.zeros(me)
-    watt = np.zeros(me)
-    csiatt = np.zeros(me)
-    tiatt = np.zeros(me)
-    cuatt[0:me-1] = cuAtten.getMu()[0:me-1]
-    tiatt[0:me-1] = tiAtten.getMu()[0:me-1]
-    alatt[0:me-1] = alAtten.getMu()[0:me-1]
-    watt[0:me-1] = wAtten.getMu()[0:me-1]
-    csiatt[0:me-1] = csiAtten.getMu()[0:me-1]
-    at_se = se*np.exp(-cuatt*dcu-watt*dw-alatt*dal)*xe*(1-np.exp(-csiatt*dcsi))
-    return at_se
-
-
 def loadAll(string):
     """ read both the carousel definition file and the data file with the
         calibration data """
@@ -50,7 +34,7 @@ def loadAll(string):
     if len(string)<3:
         print "syntax: load <cardef> <carrun>"
         return
-    
+
     if debug:
         pdb.set_trace()
     carouselData = cu.carousel(string[1])
@@ -65,7 +49,7 @@ def loadAll(string):
     if not xSpec.isValid():
         sys.exit("** failed to load spectrum")
 
- 
+
 def showImg(string):
     """ plot the n calibration images on one plot; user must kill
         window to continue"""
@@ -159,7 +143,7 @@ def showSpec(string):
         plt.show(block=False)
     else:
         print "must load data first"
-        
+
 def quitCarousel(string):
     """ exit the command level """
     sys.exit("quit called")
@@ -250,6 +234,8 @@ def showCor(string):
     plt.show(block=False)
 
 def setFilter(string):
+    """ List filters defined or change settings of an existing filter. Can not at
+        present add a new filter """
     try:
         if carouselCal.isValid():
             #print "have carouselCal - str: ",string
@@ -317,7 +303,7 @@ def fitAtt(string):
         if len(res) == len(x):
             x = res
         else:
-            print "Using zero initial guess"   
+            print "Using zero initial guess"
     else:
         print "wrong number of args: need fitatt nlines x1 x2 x3"
         print "where nlines=number of lines to fit and x1/2/3 are initial values"
@@ -374,7 +360,6 @@ def fitAtt(string):
     rfile.write('polyfits '+str(polyfit.shape[0])+" "+str(polyfit.shape[1])+"\n")
     lsumsq = []
     avatt = np.zeros((2,samples))
-    count = 0
     for line in range(nlines):
         sumsq = 0.
         for sample in range(samples):
@@ -436,7 +421,7 @@ def initGuess(string):
     except:
         print("initguess requires 3 floating point values: dt, ln(dd) and df. dt is the target "+
               "absortion width, ln(dd) is the log of detector width, and df the filter width.")
-    
+
 
 def setWidth(words):
     """ set the half width of area along row to be averaged"""
@@ -491,18 +476,18 @@ def setVary(strlst):
         return
     if len(strlst)==3:
         try:
-            np = int(strlst[2])
+            npo = int(strlst[2])
         except:
-            print "** failed to read np"
-            np = 0
+            print "** failed to read npo"
+            npo = 0
         if strlst[1]=="target":
-            vary[0] = np
+            vary[0] = npo
         elif strlst[1]=="detector":
-            vary[1] = np
+            vary[1] = npo
         elif strlst[1]=="filter":
-            vary[2] = np
+            vary[2] = npo
         elif strlst[1]=="energy":
-            vary[3] = np
+            vary[3] = npo
         else:
             print "Not recognised: ",strlst[1]
     else:
@@ -513,7 +498,7 @@ def debugToggle(cmd):
     global debug
     debug = not debug
     print "debug set to ",debug
-    
+
 
 def helpCar(cmd, string):
     """ just print list of commands"""
@@ -560,7 +545,7 @@ def setCorMat(words):
         corMat = cu.materialAtt(name,1.0)
     except:
         print "error reading material type"
-    
+
 def mask(words):
     """ show or set a mask array which is used to define if some of the sample data
         is not to be used in the fit. e.g. "mask 7" will mean sample 7 is omitted
@@ -579,14 +564,14 @@ def mask(words):
             for i in range(len(words)-1):
                 num = int(words[i+1])
                 if num > 0:
-                     carouselData.mask[num-1] = True
+                    carouselData.mask[num-1] = True
                 elif num < 0:
-                     carouselData.mask[-num-1] = False
+                    carouselData.mask[-num-1] = False
                 else:
-                     print "Warning: label 0 ignored"
+                    print "Warning: label 0 ignored"
         except:
             print "Error: bad value in list"
-        
+
 def transform(words):
     """ TEST code to try and fix up RCaH data; this is only a fudge; must get right data
         in first place, Assume we have "I" data and want log(I0/I) values, where I0 is a
@@ -669,7 +654,8 @@ if __name__ == "__main__":
     # function of line number.
     vary = np.zeros(4,dtype='int')
     vary[3] = -1
-    # set an object for the material to which attenuation is to be corrected to; this is null until the user provides one
+    # set an object for the material to which attenuation is to be corrected to;
+    # this is null until the user provides one
     corMat = cu.materialAtt("",1.0)
     # command loop
     filein = False
@@ -710,4 +696,4 @@ if __name__ == "__main__":
         except:
             print "** internal error: ", sys.exc_info()[0]
             raise
-        
+
