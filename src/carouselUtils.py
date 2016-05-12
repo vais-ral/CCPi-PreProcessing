@@ -5,7 +5,7 @@ classes:
     carousel: object to load and store description of test carousel
     carouselCalibrationData: object to load and store the calibration data
     fitData: object with methods and data related to the fitting process
-    
+
 """
 # just for reading 16 bit images and conversion to log(I0/I)
 from __future__ import division
@@ -22,13 +22,9 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     sys.exit("Error: cant find matplotlib")
-try:
-    from scipy.optimize import minimize
-except ImportError:
-    sys.exit("Error: cant find scipy.minimize")
 
 
-class specData:
+class specData(object):
     """
     Spectral data for given condition
 
@@ -108,7 +104,7 @@ class specData:
         """ has object been set up OK"""
         return self.valid
 
-class materialAtt:
+class materialAtt(object):
     """Attenuation for a material expressed as formula
 
     For each material of interest will create this object to represent attenuation
@@ -166,6 +162,7 @@ class materialAtt:
                 else:
                     frac = (energyVal-self.energy[i-1])/(self.energy[i]-self.energy[i-1])
                     muVal = self.mu[i-1]+(self.mu[i]-self.mu[i-1])*frac
+                    return muVal
         print "error: failed to match energy in getMuByE"
         return -1.
 
@@ -173,7 +170,7 @@ class materialAtt:
         """ if object ok"""
         return self.valid
 
-class carousel:
+class carousel(object):
     """ class for data describing the test carousel """
 
     def __init__(self, defFile):
@@ -199,7 +196,7 @@ class carousel:
                 self.materialTypes = mline.split(',')
                 self.density = np.fromstring(fl.readline(), dtype = float, sep=',')
                 self.sampWidth = np.fromstring(fl.readline(), dtype = float,
-                                   sep=',')
+                                               sep=',')
                 self.filterAtt = {}
                 # assume last sample is labeled "Nothing"
                 for i in range(self.numSamples - 1):
@@ -221,7 +218,7 @@ class carousel:
         """ is object ok"""
         return self.valid
 
-class carouselCalibrationData:
+class carouselCalibrationData(object):
     """ This class reads the calibration data from a carousel calibration file.
 
     The calibration file contains information about the X-ray voltage, take-off angle,
@@ -312,6 +309,8 @@ class carouselCalibrationData:
             self.valid = False
 
     def __readLineStrip(self, fl):
+        """ read line: strip newline and anything beyond #, if present
+        """
         strng = fl.readline()
         if strng.find("#") == -1:
             return strng.rstrip()
@@ -319,19 +318,23 @@ class carouselCalibrationData:
             return strng[:strng.find("#")].rstrip()
 
     def __readImageFile(self, imageFile):
+        """ read the image data based on specificed format """
         if os.path.isfile(imageFile):
             if self.imageFileFormat == "uint16":
                 # if raw int16 data, assume first image is flat field and normalise rst of image by this and do log
                 nimages = self.samples+1
                 with open(imageFile, 'rb') as fl:
                     tmpimage = np.fromfile(fl, dtype = self.imageFileFormat,
-                                 count = self.rows*self.lines*nimages).reshape(nimages, self.lines, self.rows)
-                self.image = np.zeros(self.rows*self.lines*self.samples,dtype=float).reshape(self.samples, self.lines, self.rows)
+                                           count = self.rows*self.lines*nimages)
+                    tmpimage = tmpimage.reshape(nimages, self.lines, self.rows)
+                self.image = np.zeros(self.rows*self.lines*self.samples,
+                                      dtype=float).reshape(self.samples, self.lines, self.rows)
                 # note - imported division from _future_ to avoid int div
 
-                # assume that the first image is the white level, I0, a constant over the image. To impose this assumption
-                # we take the average value over the first (flat field, shading corrected) image. This is only set for uint16
-                # data; it is not known for float32 data.
+                # assume that the first image is the white level, I0, a constant
+                # over the image. To impose this assumption we take the average
+                # value over the first (flat field, shading corrected) image.
+                # This is only set for uint16; it is not known for float32
                 whiteLev = np.average(tmpimage[0,:,:])
                 self.whiteLevel = whiteLev
                 for i in range(nimages-1):
@@ -341,7 +344,7 @@ class carouselCalibrationData:
                         imt[imt==0] = np.mean(imt)
                         logging.warning('zero data replaced in image %d',i+1)
                     self.image[i,:,:] = np.log( whiteLev / tmpimage[i+1,:,:] )
-                    
+
             elif self.imageFileFormat == "float32":
                 # assume float data already transformed by I0 and log
                 with open(imageFile, 'rb') as fl:
@@ -352,7 +355,7 @@ class carouselCalibrationData:
                         print "Failed in reading/converting image file: check data"
             else:
                 print "** error: image format name ",self.imageFileFormat," not recognised"
-                
+
         else:
             print "Image file not found!: ", imageFile
 
@@ -372,7 +375,7 @@ class carouselCalibrationData:
         """ pre compute mean centre of each image row
         """
         self.__centre = np.zeros(self.samples*self.lines).reshape(self.samples,
-                               self.lines)
+                                 self.lines)
         for samp in range(self.samples):
             for li in range(self.lines):
                 self.__centre[samp, li] = self.__getCentrePos(li, samp)
@@ -477,10 +480,10 @@ class carouselCalibrationData:
             nsample = max(self.samples)
         for isam in range(nsample):
             plt.subplot(pltgrid, pltgrid, isam+1, axisbg = 'y')
-            
 
 
-class fitData:
+
+class fitData(object):
     """ This object contains fit related data and functions
     """
 
@@ -499,6 +502,8 @@ class fitData:
         self.vary_detector=1  #3
         self.vary_filter=0
         self.vary_energy=-1
+        #
+        self.nlines = 0
         # since there may be several filters, define which one should vary
         self.vary_filter_name="Cu"
         self.verbose = False
@@ -534,30 +539,15 @@ class fitData:
         #    return
         #self.isValid=True
 
-    def calc_atten(self,widths,atten,energy,steps,detec_wid,detec_atten,spec):
-        """ find the attenuation from set of filters
-
-            widths - array of filter widths
-            atten  - 2D array, energy steps by filter count
-            steps  - scalar count of energy steps
-            detec_wid - scalar width of detector
-            detec_atten - array of detector attenuation values
-            spec   - array of spectral intensity
-        """
-        nfilter = len(widths)
-        at = np.ones(len(spec))
-        for i in range(nfilter):
-            at = at*widths(i)*atten(i)
-        at = np.exp(-at)*spec*(1.-np.exp(-detec_wid*detec_atten))
-        atsum = np.sum(at)
-        return atsum
-            
     def calcWidths(self,x0,nlines,xe):
-        """ simple function to return the 3 widths for the target,
+        """ Function to return the 3 widths for the target,
             the detector and the filter from the set of fitting
             variables. Each is assumed to be a polynomial of some
             order in the line number. Global varables are zero
-            order polynomials """
+            order polynomials.
+            Also returns the energy array which can be a polynomial:
+            E+aE**2+... ; this should be constrained >=0, not done at
+            present."""
         lines=np.array(range(nlines),dtype="double")
         nt=self.vary_target+1
         nd=self.vary_detector+1
@@ -573,7 +563,6 @@ class fitData:
         #dwidth=np.polyval(x0[nt+nd-1:nt:-1],lines)
         dwidth = np.exp( dwidth ) # force >0 by working in log space
         fwidth=np.polyval(x0[nt+nd:nt+nd+nf],lines)
-        eminv = 1.0/np.max(xe)
         if ne>0:
             # This term should be constrained as >=0 for all xe but is not at present.
             # -Ve values will give errors in output stage.
@@ -585,7 +574,7 @@ class fitData:
     def dofit(self,nlines,xin):
         """ perform fit """
         try:
-            from scipy.optimize import minimize
+            # from scipy.optimize import minimize
             from scipy.optimize import leastsq
         except:
             print "** cannot find scipy.minmize - check python has scipy"
@@ -602,7 +591,7 @@ class fitData:
         print "atten=",self.atten[0,:]
         expt = np.zeros(self.carCal.samples+1)
         for i in range(self.carCal.samples):
-             expt[i] = self.carCal.getAvAtten(0,i)
+            expt[i] = self.carCal.getAvAtten(0,i)
         print "expt=",expt
         #plt.plot(self.atten[0,:])
         #plt.plot(expt)
@@ -671,7 +660,6 @@ class fitData:
             # for debugging we print the normalised detector response for the current parameters
             plotFreq=10
             if self.objFnCalls%plotFreq == 0:
-                callCount=0
                 plt.figure('NormRespone')
                 plt.xlabel('energy')
                 plt.ylabel('Normalised response')
@@ -701,19 +689,18 @@ class fitData:
         # allocate space to store all calculated points and polynomials fitted to them
         attout = np.zeros(shape=(self.nlines,npoints+1))
         odpoly = 8
-        fitdata = np.zeros(odpoly*self.nlines)
         #
         # find the actual attenuation of the correction material at the correction energy
         corrAtt = corMat.getMuByE(corEn)
-        
+
         tarAtt = self.carCal.targetAtten
         se = self.carCal.spec.getS()
 
         # generate points to evaluate attenuation at.
-        mulist = np.arange(npoints+1,dtype='float')*attrange/(npoints*corMat.getMuByE(corEn))
+        mulist = np.arange(npoints+1,dtype='float')*attrange/(npoints*corrAtt)
         # attin is the observed attenuation; for each line want to find corresponding attout
         # the "true" attenuation at energy corEn
-        attin = mulist*corMat.getMuByE(corEn)
+        attin = mulist*corrAtt
         polyfit = np.zeros(shape=(self.nlines,odpoly+2))
         #
         # for each line generate npoints values of attenuation from fit data
@@ -768,5 +755,5 @@ class fitData:
         # main point of this code, width and density are not used here. For fitting of a polynomial
         # through (0,0) can divide y values by x values, ignoring origin (first point in this case).
         #
-        
+
         return attout,attin,polyfit
