@@ -156,7 +156,7 @@ class materialAtt(object):
             print "error: bad value in getMuByE"
             return -1.
         for i in range(len(self.energy)):
-            if energyVal >= self.energy[i]:
+            if energyVal <= self.energy[i]:
                 if energyVal == self.energy[i]:
                     return(self.mu[i])
                 else:
