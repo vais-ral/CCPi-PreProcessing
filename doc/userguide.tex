@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage{graphicx}
+\usepackage{hyperref}
 
 \begin{document}
 
@@ -31,8 +32,8 @@ In addition the model allows for variation in the form of $R(E)$ with the number
 This can occur due to the way the emitted X-ray spectra is known to depend on the ``take-off'' angle.
 
 The next section describes how to download and run the saoftware.
-In section 3 we describe how to set up the necessary file that give
-information on the number and type of test images that are used for calibration and the provided
+In section 3 we describe how to set up the necessary files that give
+information on the number and type of test images that are used for calibration and the
 image formats.
 Section 4 details how to the run the fitting an post-processing image modules of the software.
 Ths first of these fits the model to the data while the second applies the correction either
@@ -55,31 +56,44 @@ The CarouselFit software can be checked out to a suitable directory using the co
 \begin{verbatim}
     svn co https://ccpforge.cse.rl.ac.uk/svn/tomo_bhc/trunk carouselFit
 \end{verbatim}
-This will create a set of three directories under \verbatim{carouselFit}:
+This will create a set of three directories under \texttt{carouselFit}:
 \begin{itemize}
-\item \verbatim{src:} this contains the Python source code
-\item \verbatim{doc:} this contains documentation of the software
-\item \verbatim{test:} this contains several subdirectories with information on attenuation and X-ray spectra.
+\item \texttt{src:} this contains the Python source code
+\item \texttt{doc:} this contains documentation of the software
+\item \texttt{test:} this contains several subdirectories with information on attenuation and X-ray spectra.
 The source code must be executed from this directory and any updates to the carousel or crown information
-should be made in the \verbatim{carouselData} subdirectory.
+should be made in the \texttt{carouselData} subdirectory.
 \end{itemize}
 
-After downloading the software the installation can be checked by running Python in the \verbatim{test} directory
+After downloading the software the installation can be checked by running Python in the \texttt{test} directory
 and reading the example script file.
 On Linux and MacOS this could be done from a command line. assuming that the Anaconda version of Python is loaded into
 the system PATH as:
 \begin{verbatim}
   python ../src/runCarouselFit.py
   read script.short
-  exit
-\end{itemize}
+  quit
+\end{verbatim}
+
 This set of commands should run without producing any error messages, such failure to import some modules.
 If a python other than Anaconda has been used it may be necessary to install additional libraries.
 Check the documentation for your Python system to see how to do this.
 
+On Windows systems Anaconda python can be accessed from the Start Menu aster it has been installed.
+The software can be downloaded using tha command line version of svn, e.g. via Cygwin, or using the GUI
+provided by TortoiseSVN \url{https://tortoisesvn.net/}.
+Once the software is installed, start an IP Python window (or similar) from the Start Menu and navigate to the 
+\texttt{test} directory as mentioned above. Then use the \texttt{\%run} command to execute the code, e.g.:
+\begin{verbatim}
+   cd c:/svnpath/test
+   %run ../src/runCarousel.py
+   read script.short
+   quit
+\end{verbatim}
+
 \section{Configuration files}
 
-The original calibation device described in \{cite} was called a carousal as it was built from a set of 9 test samples
+The original calibation device described in \cite{davis} was called a carousal as it was built from a set of 9 test samples
 arranged between two ciruclar suuports allowing for each of the samples to be imaged individually by the scanner.
 The samples would cover the full range of lines in the scanner, but not the full range of each row; typically only
 the centre half of each row would be covered by the sample.
@@ -88,4 +102,147 @@ A more recent calibration device has been developed at staff at the Research Cen
 known as a crown. This device allows a larger number of samples to be mounted.
 In this case the sample usually covers all lines and rows of the image.
 
-The software for analysis of the image data is written in Python and has a simple command line interface.
+\subsection{Carousel sample definition file}
+
+The materials mounted on the carousel, or crown, must be described in a simple Ascii file which is stored
+in the \texttt{test/carouselData} directory.
+An example of the format that was used for the carousel from QMUL is shown below.
+\begin{verbatim}
+# carousel definition file based on data from QMUL 17/11/14
+10
+Cu,Ti,Ti,Ti,Al,Al,Al,Al,Al,NOTHING
+8.92,4.506,4.506,4.506,2.698,2.698,2.698,2.698,2.698,1
+0.2093,0.44200,0.22100,0.110500,0.3976,0.1988,0.0994,0.0497,0.02,0.
+\end{verbatim}
+
+This illustrates a case where there are 9 sample materials in the carousel.
+In this case all the samples are pure metals of known thickness and density.
+It is important to emphasize that the calibration depends on the sample materials
+been very well charaterised.
+If a large error exists in either the thickness or purity of a sample this can undermine
+the accuracy of the fitting process.
+No exact guidelines have yet been defined on the best set of test materials to use, but obviously
+samples of the material the forms the dominant absorber in the imaged target would be ideal.
+However, this is often not practical in many cases, such as bone and teeth studies, where calcium metal
+is the prime absorber, but samples of the pure metal are subject chemical reactions in air.
+As long as the energy dependence of the sample attenuation coefficient, $\mu(E)$, is not too different to that of
+target dominant absorber then the calibration method should work.
+Some possible problems may occur if the sample has sharp steps in $\mu(E)$ due to band edges that lie in the
+response range of the system which are not seen in the target material.
+For example, compare the attenuation of Sn with that of Ca in the range 0 to 75KeV.
+
+The above file uses the simple format:
+\begin{itemize}
+\item{line1:} a comment line, starting with #, to describe the file
+\item{line2:} a single integer giving the number of sample materials plus 1
+\item{line3:} a set of comma separated strings giving the names of each sample, with no spaces. the
+number of names must be the same as the previous number, with the final one named "NOTHING".
+In this case the samples are all pure metals and the chemical symbol has been used as the name.
+However any name be used as long as a corresponding file with the extension \texttt{.txt} exists
+in the directory \texttt{test/xcom}. This file gives the energy dependent $\mu(E)$ for this sample.
+\item{line4:} a set of comma separated values giving the density (in g/cm3) of each sample. A dummy
+value of 1 is used for the final material.
+\item{line5:} a set of comma seperated values giving the thickness of each sample in cm. A dummy value of
+0. is added on the end.
+\end{itemize}
+If a sample type other then the ones already described in \texttt{test/xcom} is used it is necessary to
+create a file of the attenuation values of that sample.
+See the Readme file in that directory for details.
+
+The thickness range of the samples should aim to cover the range of attenuations that are expected in the test sample.
+
+\subsection{Sample image data file}
+
+In addition to a description of the samples in the carousel it is also necessary to define the format of the sample
+images and details of the X-ray source, filters and detector.
+This is done via another file in the directory \texttt{test/carouselData} which has the default extension \texttt{.data}.
+One such file must be generated for each calibration case, while the above carousel definition file will only change
+if the samples are changed.
+
+Again a simple Ascii format is used to define the necessary values.
+An example is shown below:
+\begin{verbatim}
+# data for one QMUL calibration run
+80              # voltage
+22              # angle
+W               # target material
+19.25           # target density
+600             # image res rows
+800             # image res lines
+carouselData/run001.img         # image file
+float32         # data type in image file
+2               # number of filters
+Al              # filter material
+0.12            # filter width
+2.698           # filter density
+Cu              # filter material
+0.1             # filter width - 0.1
+8.92            # filter density
+CsI             # detector material
+0.01            # starting value for detector thickness
+4.51            # detector density
+\end{verbatim}
+
+The format has one value per line with a comment to described the value.
+Most of these are self describing, such as the accelerating voltage, the take-off angle,
+the target material (tungsten, W) and its density, for the X-ray source.
+
+The path to the file containing the sample images must be included in this file.
+All the images must currently be in a single file.
+The format used above, \texttt{float32}, assumes a binary format with 9 separate images of $600 \times 800$ 32bit floating
+point values.
+Each value is $log ( I_0 / I )$ for that pixel.
+
+Another supported format is \texttt{uint16}. In this case the sample images values are unsigned 16 bit values of the $I$ value.
+Again these are all packed in order in a single file. The first image of the file is the (shading corrected) flat field image.
+The $I_0$ value is taken as the average of this inital image.
+ 
+Usually a set of filters are used to limit the limit the energy range of the X-ray beam. In the case of the QMUL data they
+normally employ two filters with 0.12cm of Al and 0.1cm of Cu, as shown in the above file.
+As the fitting process includes varying the exact Cu filter width it is recommended that a zero width Cu filter element is included
+even if no Cu was used in the actual imaging.
+
+The definition of the detector material is important and tests to date have been made with CsI. However other materials may be used
+if their attenuation profile is included in the \texttt{text/xcom} directory.
+Since the width of the detector is used as a fitting parameter it is not necessary to specify an accurate starting value, though this
+will be used in the command \texttt{showspec}, if it is run before a fit has been performed.
+
+\section{The command line interface}
+
+When the Python software is started from Python or a similar environment, a simple command prompt is issued.
+Typing \texttt{help} will give a simple list of the available commands, though without much detail of the options.
+
+The most important commands are:
+\begin{itemize}
+\item{read \it{filename}} This command opens the given file and reads commands from it until end of file.
+Control is then returned to the command line. Do not include blank lines in the command script.
+\item{load \it{file.def} \it{file.data}} This reads the definition file for the carousel and the data
+relating to the actual calibration images. These two files must exist and are described in the previous section.
+they are normally located in the \texttt{test/carouselData} diirectory.
+\item{quit} Exit the program.
+\item{help} Give a list of available commands.
+\item{showcor \it{[l1 l2...]}} This command will plot the attenuation correction curve for any one or lines. If no arguments are given
+it will plot the first, middle and last correction lines. The matplotlib zoom feature can be used to focus on a particular region of the
+plot. It can only be used after a fit has been performed.
+\item{showimag} This command will plot the images of each sample in one window. It may be useful to check for problems with the samples.
+It can only be used after data has been loaded.
+\item{fitatt \it{[nline s1 s2 s3]}} This command attempts to fit the model to the selected samples. If arguments are given they must be the
+number of lines of data to fit to followed by the three initial guesses for the variables.
+$s_1$ is the width of the target filter (usually tungsten), $s_2$ is the log width of the detector (usually CsI) and $s-3$ is the width of the
+fitted filter (usually copper). Commonly used values ffor the initial guess are 0.01 -6.0 0.01.
+Fitting to the whole data set with 2000 line resolution can be slow.
+\item{vary \it{[target|detector|filter|energy npoly]}} On its own this command lists the order of polynomial used in fitting the line wise
+dependence of each of the three main parameters, target width, detector width and filter width.
+Thus setting 0 for each of these would mean no variation across lines, while setting each as 1 gives a linear variation of each in line number.
+The fit time increases significantly with the order used.
+Extra terms also can be added to the normally linear dependence of the response to the photon energy; however this polynomial is not constrained
+to be positive and the fit may fail. Hence the vary value defaults to -1 which indicates no energy dependence.
+\item{initguess \it{$s_1$ $s_2$ $s_3$}} Set the initial guess to be used by fitatt.
+\item{mask \it{[n1 n2..]}} Without arguments this shows the set of masks that control if a given sample will be used in the next fit operation.
+By default all values are true which means that sample will be used in the fit. Samples are labelled from 1 to $n$ and to mask the $m$ sample
+that number should be given as an argument to the mask command. A negative value can be used to unmask a previously masked sample.
+\item{setcormat \it{material energy}} This command should be used before a fit operation to define the material and energy to which the correction
+curve should be determined. For example \texttt{setcormat Al 40} sets the correction curve to be calculated for Aluminium at 40KeV.
+At present if the correction material or energy are altered it is necessary to rerun the fit command.
+
+\end{document}
