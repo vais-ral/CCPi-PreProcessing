@@ -1,0 +1,91 @@
+\documentclass{article}
+\usepackage{graphicx}
+
+\begin{document}
+
+\title{Beam Hardening Correction CarouselFit: User Guide}
+\author{Author's Name}
+
+\maketitle
+
+\begin{abstract}
+This document is a brief userguide to the Python software package CarousalFit which takes image
+data from a number of known samples produced by an X-ray CT machine and fits them to a model of
+the beam hardening process which occurs when a broad spectrum source is used image a sample.
+This model can then be used to generate corrections appropriate for a single material to convert
+the observed attenuation values into the actual attenuation that would be observed for that material
+with monochromatic X-rays.
+This software is based on the IDL package and ideas described in \cite{davis}.
+\end{abstract}
+
+\section{Introduction}
+Beam hardening is well known problem that is described in many works, see \cite{davis}.
+This software takes as input a number of images of well characterised samples and uses these
+to fit a simple model of the expected beam hardening (BH) to the observed data.
+The result is an estime of the ``response function'', $R(E)$, which gives the expected output signal
+from the detector as a function of X-ray energy for the selected combination of X-ray source, filters
+and detector.
+Note that due to aging effects of the X-ray source, detector, etc., this function may change over time,
+so ideally the calibration measurements should be made before and after each CT scan.
+In addition the model allows for variation in the form of $R(E)$ with the number of the scan line.
+This can occur due to the way the emitted X-ray spectra is known to depend on the ``take-off'' angle.
+
+The next section describes how to download and run the saoftware.
+In section 3 we describe how to set up the necessary file that give
+information on the number and type of test images that are used for calibration and the provided
+image formats.
+Section 4 details how to the run the fitting an post-processing image modules of the software.
+Ths first of these fits the model to the data while the second applies the correction either
+directly to the CT image data or generates a lookup table to map observed attenuation values to
+mono-chromatic attenuation.
+Section 5 shows two examples of the use of the software.
+
+\section{Downloading and running the software}
+
+The software is available from the CCPForge repository.
+It consists of a Python software pacakge along with a number of data files that are used to help model the X-ray
+beams and the material attenuation.
+As well as a Python environment the software depends on a number of additional packages being available.
+An easy way to access most of the required packages is to download the Anaconda Python environment which is
+available for Linux, MacOS and Windows systems from \url{https://www.continuum.io/downloads}.
+It is recommended that the user installs this before installing the CarouselFit software.
+Alternatively the user may install the required packages in their local Python installation.
+
+The CarouselFit software can be checked out to a suitable directory using the command:
+\begin{verbatim}
+    svn co https://ccpforge.cse.rl.ac.uk/svn/tomo_bhc/trunk carouselFit
+\end{verbatim}
+This will create a set of three directories under \verbatim{carouselFit}:
+\begin{itemize}
+\item \verbatim{src:} this contains the Python source code
+\item \verbatim{doc:} this contains documentation of the software
+\item \verbatim{test:} this contains several subdirectories with information on attenuation and X-ray spectra.
+The source code must be executed from this directory and any updates to the carousel or crown information
+should be made in the \verbatim{carouselData} subdirectory.
+\end{itemize}
+
+After downloading the software the installation can be checked by running Python in the \verbatim{test} directory
+and reading the example script file.
+On Linux and MacOS this could be done from a command line. assuming that the Anaconda version of Python is loaded into
+the system PATH as:
+\begin{verbatim}
+  python ../src/runCarouselFit.py
+  read script.short
+  exit
+\end{itemize}
+This set of commands should run without producing any error messages, such failure to import some modules.
+If a python other than Anaconda has been used it may be necessary to install additional libraries.
+Check the documentation for your Python system to see how to do this.
+
+\section{Configuration files}
+
+The original calibation device described in \{cite} was called a carousal as it was built from a set of 9 test samples
+arranged between two ciruclar suuports allowing for each of the samples to be imaged individually by the scanner.
+The samples would cover the full range of lines in the scanner, but not the full range of each row; typically only
+the centre half of each row would be covered by the sample.
+
+A more recent calibration device has been developed at staff at the Research Centre at Harwell (RCaH) which is
+known as a crown. This device allows a larger number of samples to be mounted.
+In this case the sample usually covers all lines and rows of the image.
+
+The software for analysis of the image data is written in Python and has a simple command line interface.
