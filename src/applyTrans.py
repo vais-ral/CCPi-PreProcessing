@@ -1,9 +1,9 @@
-#
+"""
 # Program to read in the polynomial fit(s) from carousel analysis and apply them to
 # a set of data. The Data can be float values of I0/I or int16 values of I0/I with I0 defined
 # in some way. e.g. single I0 value or matrix of I0 values
 # Corrected values will be written in same format as input.
-#
+"""
 from __future__ import print_function
 import os.path
 import sys, getopt
@@ -13,8 +13,10 @@ import pdb
 
 
 def readPolyCoeff(fileParam):
+    """
     # read the "param.log" type data of polynomial coeffs
     # retunrs numpy array polyC
+    """
     if not os.path.isfile(fileParam):
         return 0
     else:
@@ -24,7 +26,8 @@ def readPolyCoeff(fileParam):
         return polyfits
 
 def checkArgs(argstr):
-    # set default lines and rows for QMUL data
+    """ set default lines and rows for QMUL data
+    """
     lines=800
     rows=600
     whiteLevel = 0
@@ -55,12 +58,12 @@ def checkArgs(argstr):
             debug = True
     return rows,lines,polyf,whiteLevel,bhtFile,debug,args
 
-def processRaw(infile,outfile,polyC,rows,lines,debug):
-    #
+def processRaw(infile,outfile,polyC,rows,lines):
+    """
     # Read a binary raw file containing float32 data of the ln(I0/I) image data
     # and apply the correction given by the polynomial(s) in polyC.
     # Results output written to outfile in same raw format.
-    #
+    """
     infi = open(infile,"rb")
     outfi = open(outfile,"wb")
     count = 0
@@ -87,12 +90,12 @@ def processRaw(infile,outfile,polyC,rows,lines,debug):
                 ln = l
             img[l,:] = correct(img[l,:],polyC[ln,::-1])
         img.tofile(outfi)
-        
+
     infi.close()
     outfi.close()
 
 def processTif(infile,outpre,polyC,rows,lines,whiteLevel,debug):
-    #
+    """
     # Read a tif file containing uint16 data of "I" image data
     # and apply the correction given by the polynomial(s) in polyC.
     # White level "whiteLevel" must be provided.
@@ -100,11 +103,11 @@ def processTif(infile,outpre,polyC,rows,lines,whiteLevel,debug):
     # afterwards. A correction table in the reconstruction process would
     # be more efficient.
     # Results output written to outfile in same tif format.
-    #
+    """
     try:
         #from PIL import Image
         import tifffile as tf
-    except:
+    except ImportError:
         #print("Import PIL failed")
         print("Import tifffile failed")
         sys.err(1)
@@ -118,7 +121,7 @@ def processTif(infile,outpre,polyC,rows,lines,whiteLevel,debug):
     if whiteLevel==0:
         whiteLevel = imArr.max()
         if debug:
-           print("Using whiteLevel=",whiteLevel)
+            print("Using whiteLevel=",whiteLevel)
     #
     imLn = np.log(float(whiteLevel)/imArr)
 
@@ -140,13 +143,15 @@ def processTif(infile,outpre,polyC,rows,lines,whiteLevel,debug):
     tf.imsave(outfile,imCor16)
 
 def correct(lineData,polyData):
+    """ simply apply polynomial to data """
     return nppoly.polyval(lineData,polyData)
 
 def genbht(bhtFile,whiteLevel,polyC):
-    # Generate the bht file from the first polynomial data. Only one correction
-    # curve can be used in a bht file, so line wise correction is not possible.
-    # Any values above the whiteLevel are set as 1.0, i.e. no attenuation.
-    # Use first correction polynomial at present.
+    """ Generate the bht file from the first polynomial data. Only one correction
+    curve can be used in a bht file, so line wise correction is not possible.
+    Any values above the whiteLevel are set as 1.0, i.e. no attenuation.
+    Use first correction polynomial at present. """
+
     bhtf = open(bhtFile,"w")
     fwl = float(whiteLevel)
     values = 2**16
@@ -185,7 +190,7 @@ if type(polyCoeffs)==type(0):
 print("Number of polynomials: ",str(len(polyCoeffs[:,0]))," order: ",str(len(polyCoeffs[0,:])-1) )
 nargs = len(args)
 
-if bhtFile <> "":
+if bhtFile != "":
     print("generating .bht file")
     if nargs>0:
         print("Ignoring file arguments")
@@ -205,7 +210,7 @@ if fileext==".raw" and nargs==1:
     if whiteLevel>0:
         print("* Ignoring whiteLevel for .raw file")
     outfile = "bhc_"+args[0]
-    processRaw(args[0],outfile,polyCoeffs,rows,lines,debug)
+    processRaw(args[0],outfile,polyCoeffs,rows,lines)
 elif fileext==".tif":
     print("Processing .tif file(s)")
     #if whiteLevel<1:
