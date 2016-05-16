@@ -10,7 +10,7 @@
 \maketitle
 
 \begin{abstract}
-This document is a brief userguide to the Python software package CarousalFit which takes image
+This document is a brief user guide to the Python software package CarouselFit which takes image
 data from a number of known samples produced by an X-ray CT machine and fits them to a model of
 the beam hardening process which occurs when a broad spectrum source is used image a sample.
 This model can then be used to generate corrections appropriate for a single material to convert
@@ -23,7 +23,7 @@ This software is based on the IDL package and ideas described in \cite{davis}.
 Beam hardening is well known problem that is described in many works, see \cite{davis}.
 This software takes as input a number of images of well characterised samples and uses these
 to fit a simple model of the expected beam hardening (BH) to the observed data.
-The result is an estime of the ``response function'', $R(E)$, which gives the expected output signal
+The result is an estimate of the ``response function'', $R(E)$, which gives the expected output signal
 from the detector as a function of X-ray energy for the selected combination of X-ray source, filters
 and detector.
 Note that due to aging effects of the X-ray source, detector, etc., this function may change over time,
@@ -31,12 +31,12 @@ so ideally the calibration measurements should be made before and after each CT 
 In addition the model allows for variation in the form of $R(E)$ with the number of the scan line.
 This can occur due to the way the emitted X-ray spectra is known to depend on the ``take-off'' angle.
 
-The next section describes how to download and run the saoftware.
+The next section describes how to download and run the software.
 In section 3 we describe how to set up the necessary files that give
 information on the number and type of test images that are used for calibration and the
 image formats.
 Section 4 details how to the run the fitting an post-processing image modules of the software.
-Ths first of these fits the model to the data while the second applies the correction either
+The first of these fits the model to the data while the second applies the correction either
 directly to the CT image data or generates a lookup table to map observed attenuation values to
 mono-chromatic attenuation.
 Section 5 shows two examples of the use of the software.
@@ -44,7 +44,7 @@ Section 5 shows two examples of the use of the software.
 \section{Downloading and running the software}
 
 The software is available from the CCPForge repository.
-It consists of a Python software pacakge along with a number of data files that are used to help model the X-ray
+It consists of a Python software package along with a number of data files that are used to help model the X-ray
 beams and the material attenuation.
 As well as a Python environment the software depends on a number of additional packages being available.
 An easy way to access most of the required packages is to download the Anaconda Python environment which is
@@ -60,9 +60,9 @@ This will create a set of three directories under \texttt{carouselFit}:
 \begin{itemize}
 \item \texttt{src:} this contains the Python source code
 \item \texttt{doc:} this contains documentation of the software
-\item \texttt{test:} this contains several subdirectories with information on attenuation and X-ray spectra.
+\item \texttt{test:} this contains several sub-directories with information on attenuation and X-ray spectra.
 The source code must be executed from this directory and any updates to the carousel or crown information
-should be made in the \texttt{carouselData} subdirectory.
+should be made in the \texttt{carouselData} sub-directory.
 \end{itemize}
 
 After downloading the software the installation can be checked by running Python in the \texttt{test} directory
@@ -80,7 +80,7 @@ If a python other than Anaconda has been used it may be necessary to install add
 Check the documentation for your Python system to see how to do this.
 
 On Windows systems Anaconda python can be accessed from the Start Menu aster it has been installed.
-The software can be downloaded using tha command line version of svn, e.g. via Cygwin, or using the GUI
+The software can be downloaded using the command line version of svn, e.g. via Cygwin, or using the GUI
 provided by TortoiseSVN \url{https://tortoisesvn.net/}.
 Once the software is installed, start an IP Python window (or similar) from the Start Menu and navigate to the 
 \texttt{test} directory as mentioned above. Then use the \texttt{\%run} command to execute the code, e.g.:
@@ -93,8 +93,8 @@ Once the software is installed, start an IP Python window (or similar) from the 
 
 \section{Configuration files}
 
-The original calibation device described in \cite{davis} was called a carousal as it was built from a set of 9 test samples
-arranged between two ciruclar suuports allowing for each of the samples to be imaged individually by the scanner.
+The original calibration device described in \cite{davis} was called a carousal as it was built from a set of 9 test samples
+arranged between two circular supports allowing for each of the samples to be imaged individually by the scanner.
 The samples would cover the full range of lines in the scanner, but not the full range of each row; typically only
 the centre half of each row would be covered by the sample.
 
@@ -118,7 +118,7 @@ Cu,Ti,Ti,Ti,Al,Al,Al,Al,Al,NOTHING
 This illustrates a case where there are 9 sample materials in the carousel.
 In this case all the samples are pure metals of known thickness and density.
 It is important to emphasize that the calibration depends on the sample materials
-been very well charaterised.
+been very well characterised.
 If a large error exists in either the thickness or purity of a sample this can undermine
 the accuracy of the fitting process.
 No exact guidelines have yet been defined on the best set of test materials to use, but obviously
@@ -142,7 +142,7 @@ However any name be used as long as a corresponding file with the extension \tex
 in the directory \texttt{test/xcom}. This file gives the energy dependent $\mu(E)$ for this sample.
 \item{line4:} a set of comma separated values giving the density (in g/cm3) of each sample. A dummy
 value of 1 is used for the final material.
-\item{line5:} a set of comma seperated values giving the thickness of each sample in cm. A dummy value of
+\item{line5:} a set of comma separated values giving the thickness of each sample in cm. A dummy value of
 0. is added on the end.
 \end{itemize}
 If a sample type other then the ones already described in \texttt{test/xcom} is used it is necessary to
@@ -195,7 +195,7 @@ Each value is $log ( I_0 / I )$ for that pixel.
 
 Another supported format is \texttt{uint16}. In this case the sample images values are unsigned 16 bit values of the $I$ value.
 Again these are all packed in order in a single file. The first image of the file is the (shading corrected) flat field image.
-The $I_0$ value is taken as the average of this inital image.
+The $I_0$ value is taken as the average of this initial image.
  
 Usually a set of filters are used to limit the limit the energy range of the X-ray beam. In the case of the QMUL data they
 normally employ two filters with 0.12cm of Al and 0.1cm of Cu, as shown in the above file.
@@ -218,7 +218,7 @@ The most important commands are:
 Control is then returned to the command line. Do not include blank lines in the command script.
 \item{load \it{file.def} \it{file.data}} This reads the definition file for the carousel and the data
 relating to the actual calibration images. These two files must exist and are described in the previous section.
-they are normally located in the \texttt{test/carouselData} diirectory.
+they are normally located in the \texttt{test/carouselData} directory.
 \item{quit} Exit the program.
 \item{help} Give a list of available commands.
 \item{showcor \it{[l1 l2...]}} This command will plot the attenuation correction curve for any one or lines. If no arguments are given
@@ -229,7 +229,7 @@ It can only be used after data has been loaded.
 \item{fitatt \it{[nline s1 s2 s3]}} This command attempts to fit the model to the selected samples. If arguments are given they must be the
 number of lines of data to fit to followed by the three initial guesses for the variables.
 $s_1$ is the width of the target filter (usually tungsten), $s_2$ is the log width of the detector (usually CsI) and $s-3$ is the width of the
-fitted filter (usually copper). Commonly used values ffor the initial guess are 0.01 -6.0 0.01.
+fitted filter (usually copper). Commonly used values for the initial guess are 0.01 -6.0 0.01.
 Fitting to the whole data set with 2000 line resolution can be slow.
 \item{vary \it{[target|detector|filter|energy npoly]}} On its own this command lists the order of polynomial used in fitting the line wise
 dependence of each of the three main parameters, target width, detector width and filter width.
@@ -239,7 +239,7 @@ Extra terms also can be added to the normally linear dependence of the response 
 to be positive and the fit may fail. Hence the vary value defaults to -1 which indicates no energy dependence.
 \item{initguess \it{$s_1$ $s_2$ $s_3$}} Set the initial guess to be used by fitatt.
 \item{mask \it{[n1 n2..]}} Without arguments this shows the set of masks that control if a given sample will be used in the next fit operation.
-By default all values are true which means that sample will be used in the fit. Samples are labelled from 1 to $n$ and to mask the $m$ sample
+By default all values are true which means that sample will be used in the fit. Samples are labeled from 1 to $n$ and to mask the $m$ sample
 that number should be given as an argument to the mask command. A negative value can be used to unmask a previously masked sample.
 \item{setcormat \it{material energy}} This command should be used before a fit operation to define the material and energy to which the correction
 curve should be determined. For example \texttt{setcormat Al 40} sets the correction curve to be calculated for Aluminium at 40KeV.
