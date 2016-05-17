@@ -38,7 +38,7 @@ information on the number and type of test images that are used for calibration 
 image formats.
 Section 4 details how to the run the fitting an post-processing image modules of the software.
 The first of these fits the model to the data while the second applies the correction either
-directly to the CT image data or generates a lookup table to map observed attenuation values to
+directly to the CT image data or generates a look-up table to map observed attenuation values to
 mono-chromatic attenuation.
 Section 5 shows two examples of the use of the software.
 
@@ -105,7 +105,7 @@ In this case the sample usually covers all lines and rows of the image.
 
 \subsection{Carousel sample definition file}
 
-The materials mounted on the carousel, or crown, must be described in a simple Ascii file which is stored
+The materials mounted on the carousel, or crown, must be described in a simple ASCII file which is stored
 in the \texttt{test/carouselData} directory.
 An example of the format that was used for the carousel from QMUL is shown below.
 \begin{verbatim}
@@ -160,7 +160,7 @@ This is done via another file in the directory \texttt{test/carouselData} which 
 One such file must be generated for each calibration case, while the above carousel definition file will only change
 if the samples are changed.
 
-Again a simple Ascii format is used to define the necessary values.
+Again a simple ASCII format is used to define the necessary values.
 An example is shown below:
 \begin{verbatim}
 # data for one QMUL calibration run
@@ -254,7 +254,7 @@ attenuation for all samples at line 400. Samples are labeled 0 to $n-1$ in this 
 \item{\bf showconf} - list some of the settings, such as the filters, detector, source and voltage.
 \item{\bf setwidth \it[width]} - without arguments, prints the width, in pixels, used to average over each line to get the mean
 attenuation. For the QMUL data, where the sample does not cover the whole image, it is important to ensure this does not
-exceeed the true sample width. For the RCaH data, where the image does cover the whole width, a larger value can be used.
+exceed the true sample width. For the RCaH data, where the image does cover the whole width, a larger value can be used.
 \item{\bf setfilter \it[material width]} - without arguments lists the filters defined. Can also be used
 to change the width of existing filters, though not add new ones. Used for debugging.
 
@@ -262,10 +262,10 @@ to change the width of existing filters, though not add new ones. Used for debug
 
 \subsection{Using the software}
 
-As described in section 3 it is necessary to write the definition files that descibe the carousel and the particular
+As described in section 3 it is necessary to write the definition files that describe the carousel and the particular
 test case that is being treated.
 The latter file must also point to the data file that contains the sample images in a suitable format.
-It is assumed that corrections for dark and flat field images have being applied to the images before ther are
+It is assumed that corrections for dark and flat field images have being applied to the images before they are
 passed to the software.
 A simple partial analysis might consist of the following steps:
 \begin{verbatim}
