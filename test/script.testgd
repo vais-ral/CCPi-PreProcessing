@@ -1,0 +1,24 @@
+# test fit file for GD data
+# First read carousel definition and data files
+load carouselData/carousel0.def carouselData/run001.data
+# show the initial data; note the plot must be closed before the
+# calculation will procede at present.
+# showimg
+# set the target material; this must be defined by running xcom
+# beforehand.
+setcormat CaHydro 40.
+# define the order of polynomials (in line number) to use for fitting
+# the data.
+vary target 0
+vary detector 0
+vary filter 0
+# run a fit across first 20 lines of the test data set providing the three
+# initial guesses for the constant terms in the target, detector and filter
+# variables.
+fitatt 20
+vary energy 0
+fitatt 20
+vary target 2
+vary filter 2
+fitatt 799 10
+showspec

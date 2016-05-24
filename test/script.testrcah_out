@@ -1,0 +1,49 @@
+ 
+ *** Carousel data fitting program ***
+ 
+ Code based on algorithms developed at Queen Mary University
+ of London by Graham Davis, Anthony Evershed et al
+ This implementation by Ron Fowler at STFC
+ contact ronald.fowler@stfc.ac.uk
+ Funded by the CCPi project
+ 
+bhc: bhc: bhc: bhc: bhc: bhc: bhc: bhc: bhc: reading correction material definition from file:  olivine
+bhc: bhc: bhc: bhc: bhc: bhc: bhc: bhc: bhc: Fitting variables:  4
+Line 0 atten= [ 0.          0.02068455  0.03084394  0.09902621  0.18929572  0.35239047
+  0.49979678  3.83041768  0.          0.        ]
+Line 0 expt= [-0.00421513  0.0083708   0.04467297  0.09697852  0.1875049   0.35165412
+  0.49973595  3.83696338  0.18553123  0.        ]
+time= 1.5922460556
+dofit returned: 
+ best fit values =  [  3.52097108e-04  -2.34019791e+00   2.21669597e-03   7.61833765e-03]
+ ier =  1
+ iterations =  164
+average error:  0.000382459256198
+max error:  0.000564094151071
+bhc: Fitting variables:  4
+Line 0 atten= [ 0.          0.01941501  0.02894914  0.09347713  0.18040369  0.34039671
+  0.48694135  3.78645068  0.          0.        ]
+Line 0 expt= [-0.00421513  0.0083708   0.04467297  0.09697852  0.1875049   0.35165412
+  0.49973595  3.83696338  0.18553123  0.        ]
+time= 2.95512104034
+dofit returned: 
+ best fit values =  [-0.00275173 -0.23499483  0.01716023 -0.00205658]
+ ier =  1
+ iterations =  227
+average error:  0.000943614452612
+max error:  0.00435998154457
+bhc: bhc: bhc: bhc: Fitting variables:  8
+Line 0 atten= [ 0.          0.0206961   0.03081341  0.09889281  0.18988733  0.35583829
+  0.50660491  3.8327608   0.          0.        ]
+Line 0 expt= [ -1.58882064e-03   8.77614292e-03   4.36128374e-02   9.54934674e-02
+   1.87697507e-01   3.53248140e-01   5.02654567e-01   3.83798364e+00
+   1.92505049e-01   0.00000000e+00]
+time= 14.4287781715
+dofit returned: 
+ best fit values =  [  2.95342687e-10  -1.03126581e-07  -2.83791087e-03  -3.85775644e-01
+  -2.27096507e-09   2.87722140e-06   1.65666406e-02  -2.23585546e-03]
+ ier =  1
+ iterations =  401
+average error:  0.000583445067346
+max error:  0.00195565003256
+bhc: 

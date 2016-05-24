@@ -1,0 +1,48 @@
+ 
+ *** Carousel data fitting program ***
+ 
+ Code based on algorithms developed at Queen Mary University
+ of London by Graham Davis, Anthony Evershed et al
+ This implementation by Ron Fowler at STFC
+ contact ronald.fowler@stfc.ac.uk
+ Funded by the CCPi project
+ 
+bhc: bhc: bhc: bhc: bhc: bhc: bhc: bhc: bhc: reading correction material definition from file:  CaHydro
+bhc: bhc: bhc: bhc: bhc: bhc: bhc: bhc: bhc: Fitting variables:  3
+Line 0 atten= [ 3.88688385  2.64293599  1.69671725  1.05102109  0.70814252  0.41274938
+  0.24347019  0.14948516  0.08437425  0.        ]
+Line 0 expt= [ 3.88216424  2.64552069  1.6876781   1.04647923  0.70933229  0.41549775
+  0.24597172  0.14689726  0.07820362  0.        ]
+time= 1.11651206017
+dofit returned: 
+ best fit values =  [-0.01122969 -8.05182265  0.04897373]
+ ier =  1
+ iterations =  101
+average error:  0.000179453211122
+max error:  0.000214059375284
+bhc: bhc: Fitting variables:  4
+Line 0 atten= [ 3.90642223  2.61854766  1.70149171  1.08089615  0.72616141  0.40818788
+  0.2209035   0.11589418  0.04818404  0.        ]
+Line 0 expt= [ 3.88216424  2.64552069  1.6876781   1.04647923  0.70933229  0.41549775
+  0.24597172  0.14689726  0.07820362  0.        ]
+time= 2.11389183998
+dofit returned: 
+ best fit values =  [-0.00605739  0.15435441  0.02615958 -0.00981558]
+ ier =  1
+ iterations =  265
+average error:  0.00547723217396
+max error:  0.00563446227525
+bhc: bhc: bhc: Fitting variables:  8
+Line 0 atten= [ 3.90564244  2.61132099  1.69612112  1.07995679  0.72917866  0.41204578
+  0.22409166  0.11799545  0.04918997  0.        ]
+Line 0 expt= [ 3.88216424  2.64552069  1.6876781   1.04647923  0.70933229  0.41549775
+  0.24597172  0.14689726  0.07820362  0.        ]
+time= 15.5214891434
+dofit returned: 
+ best fit values =  [  5.21537413e-09  -4.43738008e-06  -4.86423895e-03   4.08660923e+00
+  -1.95244698e-08   1.44097705e-05   2.07697728e-02  -9.04855953e-03]
+ ier =  1
+ iterations =  482
+average error:  0.00802645863402
+max error:  0.0115769844974
+bhc: 
