@@ -229,11 +229,9 @@ it will plot the first, middle and last correction lines. The matplotlib zoom fe
 plot. It can only be used after a fit has been performed.
 \item{\bf showimag} This command will plot the images of each sample in one window. It may be useful to check for problems with the samples.
 It can only be used after data has been loaded.
-\item{\bf fitatt \it{[nline s1 s2 s3]}} This command attempts to fit the model to the selected samples. If arguments are given they must be the
-number of lines of data to fit to followed by the three initial guesses for the variables.
-$s_1$ is the width of the target filter (usually tungsten), $s_2$ is the log width of the detector (usually CsI) and $s-3$ is the width of the
-fitted filter (usually copper). Commonly used values for the initial guess are 0.01 -6.0 0.01.
-Fitting to the whole data set with 2000 line resolution can be slow.
+\item{\bf fitatt nlines \it{[linestep]}} This command attempts to fit the model to the selected samples. The
+number of lines of data to fit must be given. This maybe followed by a ``step'', e.g. 10 to use every 10th line.
+This can be useful when using many lines as fitting all of them can be very slow.
 \item{\bf vary \it{[target|detector|filter|energy npoly]}} On its own this command lists the order of polynomial used in fitting the line wise
 dependence of each of the three main parameters, target width, detector width and filter width.
 Thus setting 0 for each of these would mean no variation across lines, while setting each as 1 gives a linear variation of each in line number.
@@ -241,13 +239,16 @@ The fit time increases significantly with the order used.
 Extra terms also can be added to the normally linear dependence of the response to the photon energy; however this polynomial is not constrained
 to be positive and the fit may fail. Hence the vary value defaults to -1 which indicates no energy dependence.
 \item{\bf initguess \it{$s_1$ $s_2$ $s_3$}} Set the initial guess to be used by fitatt.
+$s_1$ is the width of the target filter (usually tungsten), $s_2$ is the log width of the detector (usually CsI) and $s-3$ is the width of the
+fitted filter (usually copper). Commonly used values for the initial guess are 0.01 -6.0 0.01.
 \item{\bf mask \it{[n1 n2..]}} Without arguments this shows the set of masks that control if a given sample will be used in the next fit operation.
 By default all values are true which means that sample will be used in the fit. Samples are labeled from 1 to $n$ and to mask the $m$ sample
 that number should be given as an argument to the mask command. A negative value can be used to unmask a previously masked sample.
 \item{\bf setcormat \it{material energy}} This command should be used before a fit operation to define the material and energy to which the correction
 curve should be determined. For example \texttt{setcormat Al 40} sets the correction curve to be calculated for Aluminium at 40KeV.
 At present if the correction material or energy are altered it is necessary to rerun the fit command.
-\item{\bf showspec} - plot three spectra, the input X-ray spectrum, the filtered spectrum and the response spectrum.
+\item{\bf showspec \it{[line]}} - plot three spectra, the input X-ray spectrum, the filtered spectrum and the response spectrum.
+If a line number is given, plots are for that line. The default is line 0.
 \item{\bf showatt \it[nsamp nline]} - plot the sample attenuations along a specific line. By default this shows the
 attenuation for all samples at line 400. Samples are labeled 0 to $n-1$ in this case.
 \item{\bf debug} - set debugging option, for diagnostic purposes only.
@@ -274,7 +275,7 @@ A simple partial analysis might consist of the following steps:
     showimg
     showatt
 \end{verbatim}
-The first command loads the definition and and run data from files, while next two commands
+The first command loads the definition and run data from files, while the next two commands
 plot the 2D images and 1D cuts along line=400.
 
 \begin{verbatim}
@@ -284,14 +285,15 @@ plot the 2D images and 1D cuts along line=400.
     vary detector 0
     vary filter 1
 
-    fitatt 799 .01 -6 .01
+    initguess .01 -6 .0
+    fitatt 799 2
 
     showspec
     showcor
 \end{verbatim}
 These commands then set the material and energy to which we wish to correct the data via the \texttt{setcormat}
 command, and then alter the default orders of the fit variables.
-The \texttt{fitatt} command fits the given initial guess using all the lines of the image data (0-799).
+The \texttt{fitatt} command fits the given initial guess using the lines of the image data, 0-799, but only every 2nd line.
 This fit may take 60 seconds. Finally the fitted spectrum and correction curves are plotted.
 
 The correction curves are stored in the same format as used in the earlier IDL code as separate 8th order polynomial
