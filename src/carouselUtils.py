@@ -571,7 +571,7 @@ class fitData(object):
             ecoeffs = xe
         return twidth,dwidth,fwidth,ecoeffs
 
-    def dofit(self,nlines,xin):
+    def dofit(self,nlines,lstep,xin):
         """ perform fit """
         try:
             # from scipy.optimize import minimize
@@ -583,20 +583,21 @@ class fitData(object):
             pdb.set_trace()
         x = xin
         self.nlines = nlines
+        self.lineStep = lstep
         #self.objFun(x)
         #res = minimize(self.objFun, x, method='Nelder-Mead')
         res = leastsq(self.objFunSq, x, full_output = True)
         #for field, val in  leastsq(self.objFunSq, x, full_output = True).items():
         #    print "field=",field," value=",value
-        print "atten=",self.atten[0,:]
+        print "Line 0 atten=",self.atten[0,:]
         expt = np.zeros(self.carCal.samples+1)
         for i in range(self.carCal.samples):
             expt[i] = self.carCal.getAvAtten(0,i)
-        print "expt=",expt
-        #plt.plot(self.atten[0,:])
-        #plt.plot(expt)
-        #plt.draw()
-        #plt.show()
+        print "Line 0 expt=",expt
+        # Do final calulation on all lines:
+        self.lineStep = 1
+        self.objFunSq(res[0])
+        #
         return res
 
     def objFunSq(self,x):
@@ -612,7 +613,7 @@ class fitData(object):
         tarAtt = self.carCal.targetAtten
         se = self.carCal.spec.getS()
         #
-        for line in range(self.nlines):
+        for line in range(0,self.nlines,self.lineStep):
             # compute filter attenuation and hence i0 as signal level with no sample for this line
             attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)]
             attSum = np.zeros(len(xe))
