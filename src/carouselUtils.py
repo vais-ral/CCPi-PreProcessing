@@ -9,6 +9,7 @@ classes:
 """
 # just for reading 16 bit images and conversion to log(I0/I)
 from __future__ import division
+from __future__ import print_function
 
 import sys
 import os
@@ -77,7 +78,7 @@ class specData(object):
             If file not found, return spec=0 """
         filename = "./spectra/%s/%03d%03d.spc" % (target, voltage, angle*10)
         if not os.path.isfile(filename):
-            print "file not found: ", filename, " in specData"
+            print("file not found: ", filename, " in specData")
             self.valid = False
         else:
             with open(filename, 'r') as fl:
@@ -131,7 +132,7 @@ class materialAtt(object):
                 self.mu = self.mu*density
             self.valid = True
         else:
-            print "failed to find attenuation file: ", filename
+            print("failed to find attenuation file: ", filename)
             self.valid = False
 
     def getE(self):
@@ -153,17 +154,17 @@ class materialAtt(object):
     def getMuByE(self,energyVal):
         """ return attenuation for the given energy """
         if energyVal<0:
-            print "error: bad value in getMuByE"
+            print("error: bad value in getMuByE")
             return -1.
         for i in range(len(self.energy)):
             if energyVal <= self.energy[i]:
                 if energyVal == self.energy[i]:
-                    return(self.mu[i])
+                    return self.mu[i]
                 else:
                     frac = (energyVal-self.energy[i-1])/(self.energy[i]-self.energy[i-1])
                     muVal = self.mu[i-1]+(self.mu[i]-self.mu[i-1])*frac
                     return muVal
-        print "error: failed to match energy in getMuByE"
+        print("error: failed to match energy in getMuByE")
         return -1.
 
     def isValid(self):
@@ -203,11 +204,11 @@ class carousel(object):
                     try:
                         self.filterAtt[i] = materialAtt(self.materialTypes[i],self.density[i])
                     except:
-                        print "** failed to set carousel attenuation for ",self.materialTypes[i]
+                        print("** failed to set carousel attenuation for ",self.materialTypes[i])
                 self.mask = np.zeros((self.numSamples),dtype=bool)
             self.valid = True
         else:
-            print "failed to find carousel file: ", defFile
+            print("failed to find carousel file: ", defFile)
             self.valid = False
 
     def getSamples(self):
@@ -235,6 +236,28 @@ class carouselCalibrationData(object):
         self.angle = 0
         self.filterDensity = 0
         self.valid = False
+
+        self.filterMaterial = {}
+        self.filterWidth = {}
+        self.filterDensity = {}
+        self.filterAtten = {}
+
+        self.detectorMaterial = ''
+        self.detectorWidth = 0.
+        self.detectorDensity = 0.
+        self.detectorAtten = {}
+
+        self.targetMat = ''
+        self.targetDensity = 0.
+        self.targetAtten = {}
+
+        self.info = ''
+        self.imageFileFormat = ''
+        self.imageFile = ''
+        self.image = {}
+        self.spec = {}
+        self.filterCount = 0
+
         self.__readCalFile(calFile)
         if self.valid:
             try:
@@ -254,35 +277,26 @@ class carouselCalibrationData(object):
         if os.path.isfile(calFile):
             with open(calFile, 'r') as fl:
                 try:
-                    pos = "start"
                     self.info = self.__readLineStrip(fl)
-                    pos = "Voltage"
                     self.voltage = float(self.__readLineStrip(fl))
                     self.angle = float(self.__readLineStrip(fl))
                     self.targetMat = self.__readLineStrip(fl).rstrip()
                     self.targetDensity = float(self.__readLineStrip(fl).rstrip())
                     if self.targetMat != "W":
-                        print "Warning: only W (Tungsten) target supported at present: not '", self.targetMat, "'"
+                        print("Warning: only W (Tungsten) target supported at present: not '", self.targetMat, "'")
                     try:
                         self.targetAtten = materialAtt(self.targetMat,self.targetDensity)
                     except:
-                        print "** failed to set target attenuation for ",self.targetMat
+                        print("** failed to set target attenuation for ",self.targetMat)
                     try:
                         self.spec = specData(self.targetMat,self.voltage,self.angle)
                     except:
-                        print "** failed to load spectra for ",self.targetMat,self.voltage,self.angle
-                    pos = "rows"
+                        print("** failed to load spectra for ",self.targetMat,self.voltage,self.angle)
                     self.rows = int(self.__readLineStrip(fl))
                     self.lines = int(self.__readLineStrip(fl))
                     self.imageFile = self.__readLineStrip(fl)
                     self.imageFileFormat = self.__readLineStrip(fl)
-                    pos = "filterCount"
                     self.filterCount = int(self.__readLineStrip(fl))
-                    self.filterMaterial = {}
-                    self.filterWidth = {}
-                    self.filterDensity = {}
-                    self.filterAtten = {}
-                    pos = "filtermatcnt"
                     for i in range(self.filterCount):
                         self.filterMaterial[i] = self.__readLineStrip(fl)
                         self.filterWidth[i] = float(self.__readLineStrip(fl))
@@ -290,22 +304,21 @@ class carouselCalibrationData(object):
                         try:
                             self.filterAtten[i] = materialAtt(self.filterMaterial[i],self.filterDensity[i])
                         except:
-                            print "** failed to set attenuation for ",self.filterMaterial[i]
+                            print("** failed to set attenuation for ",self.filterMaterial[i])
 
-                    pos = "detector"
                     self.detectorMaterial = self.__readLineStrip(fl)
                     self.detectorWidth = float(self.__readLineStrip(fl))
                     self.detectorDensity = float(self.__readLineStrip(fl))
                     try:
                         self.detectorAtten = materialAtt(self.detectorMaterial,self.detectorDensity)
                     except:
-                        print "** failed to set detector attenuation for ",self.detectorMaterial
+                        print("** failed to set detector attenuation for ",self.detectorMaterial)
                     self.valid = True
                 except (ValueError, IOError):
-                    print "Read Calibration file failed beyond: ", pos
+                    print("Read Calibration file failed")
                     self.valid = False
         else:
-            print "failed to find calibration file: ", calFile
+            print("failed to find calibration file: ", calFile)
             self.valid = False
 
     def __readLineStrip(self, fl):
@@ -352,24 +365,24 @@ class carouselCalibrationData(object):
                         self.image = np.fromfile(fl, dtype = self.imageFileFormat,
                                  count = self.rows*self.lines*self.samples).reshape(self.samples, self.lines, self.rows)
                     except:
-                        print "Failed in reading/converting image file: check data"
+                        print("Failed in reading/converting image file: check data")
             else:
-                print "** error: image format name ",self.imageFileFormat," not recognised"
+                print("** error: image format name ",self.imageFileFormat," not recognised")
 
         else:
-            print "Image file not found!: ", imageFile
+            print("Image file not found!: ", imageFile)
 
     def printImageStats(self, carInf):
         """ print out some data for each frame in the set of images"""
         for i in range(self.samples):
             nancount = np.count_nonzero(np.isnan(self.image[i,:,:]))
             if nancount>0:
-                print "*** img ", i, " contains: ", nancount, " NaNs (", nancount*100./(self.rows*self.lines), "%)"
+                print("*** img ", i, " contains: ", nancount, " NaNs (", nancount*100./(self.rows*self.lines), "%)")
                 maskedimage = np.ma.array(self.image[i,:,:],mask = np.isnan(self.image[i,:,:]))
-                print "    average(masked)= ", np.ma.average(maskedimage), "  max= ", np.ma.max(maskedimage)
+                print("    average(masked)= ", np.ma.average(maskedimage), "  max= ", np.ma.max(maskedimage))
             else:
-                print "img ", i, " ", carInf.filterMaterial[i]," ", carInf.filterWidth[i], " average= ", \
-                      np.average(self.image[i,:,:])
+                print("img ", i, " ", carInf.filterMaterial[i]," ", carInf.filterWidth[i], " average= ",
+                      np.average(self.image[i,:,:]))
 
     def __setAverages(self):
         """ pre compute mean centre of each image row
@@ -519,17 +532,18 @@ class fitData(object):
                 #self.defFilter = 'global'
         # if defMat not found, use first material in list, if any
         if self.varFilter==-1:
-            print "default filter: ", defMat," not found"
+            print("default filter: ", defMat," not found")
             if len(carCal.filterMaterial)>0:
                 self.defFilterMat=carCal.filterMaterial[0]
                 self.varFilter = 0
-                print "using material = ",self.defFilterMat," for fitting"
+                print("using material = ",self.defFilterMat," for fitting")
             else:
-                print "no filter material present, hence cannot fit this"
+                print("no filter material present, hence cannot fit this")
             # self.isValid = False
         self.atten = np.zeros([self.carCal.lines,self.carInfo.getSamples()])
         self.objFnCalls = 0
         self.nlines = 0
+        self.linestep = 1
 
     def calcWidths(self,x0,nlines,xe):
         """ Function to return the 3 widths for the target,
@@ -546,8 +560,8 @@ class fitData(object):
         nf=self.vary_filter+1
         ne=self.vary_energy+1
         if len(x0)<nt+nd+nf+ne:
-            print "** calcWidthd called with too few values in x0"
-            return
+            print("** calcWidthd called with too few values in x0")
+            sys.exit(1)
         # Polynomial expressions: highest order term is first in the array.
         twidth=np.polyval(x0[:nt],lines)
         #twidth=np.polyval(x0[nt-1:0:-1],lines)
@@ -569,7 +583,7 @@ class fitData(object):
             # from scipy.optimize import minimize
             from scipy.optimize import leastsq
         except:
-            print "** cannot find scipy.minmize - check python has scipy"
+            print("** cannot find scipy.minmize - check python has scipy")
             return
         if self.verbose:
             pdb.set_trace()
@@ -581,11 +595,11 @@ class fitData(object):
         res = leastsq(self.objFunSq, x, full_output = True)
         #for field, val in  leastsq(self.objFunSq, x, full_output = True).items():
         #    print "field=",field," value=",value
-        print "Line 0 atten=",self.atten[0,:]
+        print("Line 0 atten=",self.atten[0,:])
         expt = np.zeros(self.carCal.samples+1)
         for i in range(self.carCal.samples):
             expt[i] = self.carCal.getAvAtten(0,i)
-        print "Line 0 expt=",expt
+        print("Line 0 expt=",expt)
         # Do final calulation on all lines:
         self.lineStep = 1
         self.objFunSq(res[0])
@@ -639,17 +653,17 @@ class fitData(object):
                 at_se_sample_finite = at_se_sample[np.logical_not(np.isnan(at_se_sample))]
                 i_sample = np.sum(at_se_sample_finite)
                 if i0==0. and self.verbose:
-                    print "warn: i0 zero at ",line
+                    print("warn: i0 zero at ",line)
                     i0=1.
                 if i_sample == 0 and self.verbose:
-                    print "i_sample=0"
+                    print("i_sample=0")
                 if i_sample < 0. and self.verbose:
-                    print "i_sample<0",at_se_sample[:8]
+                    print("i_sample<0",at_se_sample[:8])
                 #sumSq = sumSq + ( (i_sample/i0) - self.carCal.getAvAtten(line,sample) ) ** 2
                 ans[line*nsamples+sample] = ( np.log(i0/i_sample) - self.carCal.getAvAtten(line,sample) ) ** 2
                 self.atten[line,sample] = np.log(i0/i_sample)
         if self.verbose:
-            print "tw,dw,fw,sumSq: ",tw[0],dw[0],fw[0],np.sum(ans)
+            print("tw,dw,fw,sumSq: ",tw[0],dw[0],fw[0],np.sum(ans))
             # for debugging we print the normalised detector response for the current parameters
             plotFreq=10
             if self.objFnCalls%plotFreq == 0:
@@ -727,12 +741,12 @@ class fitData(object):
                 at_se_sample_finite = at_se_sample[np.logical_not(np.isnan(at_se_sample))]
                 i_sample = np.sum(at_se_sample_finite)
                 if i0==0. and self.verbose:
-                    print "warn: i0 zero at ",line
+                    print("warn: i0 zero at ",line)
                     i0=1.
                 if i_sample == 0 and self.verbose:
-                    print "i_sample=0"
+                    print("i_sample=0")
                 if i_sample < 0. and self.verbose:
-                    print "i_sample<0",at_se_sample[:8]
+                    print("i_sample<0",at_se_sample[:8])
                 #sumSq = sumSq + ( (i_sample/i0) - self.carCal.getAvAtten(line,sample) ) ** 2
                 attout[line,count] = np.log(i0/i_sample)
                 count = count+1
@@ -740,7 +754,7 @@ class fitData(object):
             try:
                 polyfit[line,0:odpoly+1] = np.polyfit(attout[line,1:],attin[1:]/attout[line,1:],odpoly)
             except:
-                print "*** Polynomial fit of result failed"
+                print("*** Polynomial fit of result failed")
         #
         # following carousel.pro, attout is the apparent attenuation or the x-axis of our correction
         # graph. the y-axis should be the actual attenuation at monochromatic energy corEn for the
