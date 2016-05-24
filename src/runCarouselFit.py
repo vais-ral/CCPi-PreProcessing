@@ -9,6 +9,7 @@
     subdirectory which is currently in test.
     Most of the fitting operations are implemented in the file carouselUtils.py.
 """
+from __future__ import print_function
 import sys
 import os.path
 import logging
@@ -32,18 +33,18 @@ def loadAll(string):
         calibration data """
     global carouselData, carouselCal, xSpec
     if len(string)<3:
-        print "syntax: load <cardef> <carrun>"
+        print("syntax: load <cardef> <carrun>")
         return
 
     if debug:
         pdb.set_trace()
     carouselData = cu.carousel(string[1])
     if not carouselData.isValid():
-        print "** failed to load carousel data"
+        print("** failed to load carousel data")
         return
     carouselCal = cu.carouselCalibrationData(string[2], carouselData)
     if not carouselCal.isValid():
-        print "** failed to load calibration data"
+        print("** failed to load calibration data")
         return
     xSpec = cu.specData(carouselCal.targetMat, carouselCal.voltage, carouselCal.angle)
     if not xSpec.isValid():
@@ -54,12 +55,12 @@ def showImg(string):
     """ plot the n calibration images on one plot; user must kill
         window to continue"""
     if carouselCal == None:
-        print "must load data first"
+        print("must load data first")
         return
     try:
         width = carouselCal.width
     except:
-        print "** must read calibration data first"
+        print("** must read calibration data first")
         return
     plt.figure(FIG_IMG)
     carouselCal.plotCalData(False, width)
@@ -72,7 +73,7 @@ def showSpec(string):
     """
     global res,fit
     if carouselCal == None:
-        print "must load data first"
+        print("must load data first")
         return
     if xSpec.valid:
         plt.figure(FIG_SPEC)
@@ -80,6 +81,16 @@ def showSpec(string):
         norm = np.sum(xSpec.getS())
         yval = xSpec.getS()/norm
         plt.plot(xSpec.getE(), yval,label='raw')
+        line = 0
+        if len(string) > 1 :
+            try:
+                line = int(string[1])
+            except ValueError:
+                print("Unrecognised line number")
+                return
+            if line<0:
+                print("line must be >=0")
+                return
         if carouselCal.filterCount>0:
             n = len(xSpec.getS())
             attSpec = np.copy(yval)*norm
@@ -93,7 +104,6 @@ def showSpec(string):
                 varf = 1 # maybe?
                 fw= [carouselCal.filterWidth[varf]]
                 ec = xSpec.getE()
-            line = 0
             for i in range(carouselCal.filterCount):
                 # allow for unphysical -ve filter thicknesses
                 if varf==i:
@@ -109,12 +119,12 @@ def showSpec(string):
             plt.plot(xSpec.getE(),attSpec,label='filtered')
             meanE = np.sum(attSpec*xSpec.getE())
             dev2 = np.sum(attSpec*xSpec.getE()*xSpec.getE()) - meanE*meanE
-            print "For filtered spectrum:"
-            print "mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",norm/norma
+            print("For filtered spectrum:")
+            print("mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",norm/norma)
             #
             dE = xSpec.getE()[1]-xSpec.getE()[0]
             nmean = int(meanE/dE)
-            print " atten ratio at mean energy = ",xSpec.getS()[nmean]/(attSpec[nmean]*norma)
+            print(" atten ratio at mean energy = ",xSpec.getS()[nmean]/(attSpec[nmean]*norma))
             #
             expo = -carouselCal.targetAtten.getMu()[0:n]*tw[line]
             expo[expo>600] = 600
@@ -126,23 +136,21 @@ def showSpec(string):
             plt.plot(xSpec.getE(),resSpec,label='response')
             meanE = np.sum(resSpec*xSpec.getE())
             dev2 = np.sum(resSpec*xSpec.getE()*xSpec.getE()) - meanE*meanE
-            print "For response spectrum:"
-            print "mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",norm/norma
+            print("For response spectrum:")
+            print("mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",norm/norma)
             #
             if carouselCal.whiteLevel>0:
-                print "Calculation used whiteLevel = ",carouselCal.whiteLevel
+                print("Calculation used whiteLevel = ",carouselCal.whiteLevel)
 
-        if len(string) > 1 and string[1] == 'log':
-            plt.yscale('log')
         #else:
-        #    print "string=",string
+        #    print("string=",string)
         plt.legend()
         plt.xlabel('KeV')
         plt.ylabel('S(E) (normalised)')
         plt.draw()
         plt.show(block=False)
     else:
-        print "must load data first"
+        print("must load data first")
 
 def quitCarousel(string):
     """ exit the command level """
@@ -151,7 +159,7 @@ def quitCarousel(string):
 def showAtt(string):
     """ 1D plots of attenuation of sample n"""
     if carouselCal == None:
-        print "must load data first"
+        print("must load data first")
         return
     defline=400
     plt.figure(FIG_ATT1D)
@@ -159,13 +167,13 @@ def showAtt(string):
         try:
             samp = int(string[1])
         except:
-            print "failed to read sample value"
+            print("failed to read sample value")
             return
         if len(string)>2:
             try:
                 defline = int(string[2])
             except:
-                print "failed to read line number"
+                print("failed to read line number")
         if samp > -1 and samp < carouselCal.samples and defline > -1 and defline < carouselCal.lines:
             z = carouselCal.getImage(samp)
             plt.plot(z[defline,:])
@@ -174,7 +182,7 @@ def showAtt(string):
             plt.draw()
             plt.show(block=False)
         else:
-            print "sample number out of range"
+            print("sample number out of range")
     else:
         for i in range(carouselCal.samples):
             z = carouselCal.getImage(i)
@@ -188,7 +196,7 @@ def showAtt(string):
 def showCor(string):
     """ plot the fitted correction curve from the polynomial data """
     if not 'xtab' in globals():
-        print "No correction data available; run fitatt first"
+        print("No correction data available; run fitatt first")
         return
     if len(string)==1:
         linevals = [ 0, int((len(xtab)-1)/2), len(xtab)-1 ]
@@ -198,19 +206,19 @@ def showCor(string):
             try:
                 lineno=int(string[i+1])
             except:
-                print "Bad integer value: ",string[i+1]
+                print("Bad integer value: ",string[i+1])
                 return
             if lineno>=0 and lineno<=len(xtab):
                 linevals.append(lineno)
             else:
-                print "skipping out of range value: ",lineno
-    print "lines=",linevals
-    #print ytab[::30]
+                print("skipping out of range value: ",lineno)
+    print("lines=",linevals)
+    #print(ytab[::30])
     #for line in linevals:
     #    xvals = polyval( xtab[0,:], polyfit[line,::-1])
-    #    print "pv=",polyfit[line,::-1]
-    #    print xvals[::30]
-    #    print " "
+    #    print("pv=",polyfit[line,::-1])
+    #    print(xvals[::30])
+    #    print(" ")
     mymax=np.max(xtab[:,-1])
     xval = np.linspace(0.0,mymax,num=300)
     plt.figure(FIG_COR)
@@ -227,7 +235,7 @@ def showCor(string):
         if not carouselData.mask[i]:
             xarr[count] = carouselCal.getAvAtten(linevals[0],i)
             count = count+1
-            #print "mask ",i,"t",carouselCal.getAvAtten(linevals[0],i)
+            #print("mask ",i,"t",carouselCal.getAvAtten(linevals[0],i))
     plt.plot([0.0,mymax],[0.0,mymax],'r--')
     plt.plot(xarr,xarr,'ro')
     plt.draw()
@@ -238,28 +246,28 @@ def setFilter(string):
         present add a new filter """
     try:
         if carouselCal.isValid():
-            #print "have carouselCal - str: ",string
+            #print("have carouselCal - str: ",string)
             if len(string) == 3:
-                #print "try and set ",string[1:]
+                #print("try and set ",string[1:])
                 try:
                     mat = string[1]
                     val = float(string[2])
                 except:
-                    print "** Bad values"
+                    print("** Bad values")
                     return
                 for i in range(carouselCal.filterCount):
                     if carouselCal.filterMaterial[i] == mat:
                         carouselCal.filterWidth[i] = val
-                        print "set ",mat," filter width to ",val
+                        print("set ",mat," filter width to ",val)
                         return
                 print("filter type not found")
             else:
                 print("Filters set:")
                 print("filter, width:")
                 for i in range(carouselCal.filterCount):
-                    print carouselCal.filterMaterial[i], ",", carouselCal.filterWidth[i]
+                    print(carouselCal.filterMaterial[i], ",", carouselCal.filterWidth[i])
     except:
-        print "no carousel data file loaded"
+        print("no carousel data file loaded")
 
 
 def fitAtt(string):
@@ -270,11 +278,13 @@ def fitAtt(string):
         """
     global carouselData, carouselCal, xSpec, debug, vary
     global res,xtab,ytab,fit,polyfit
+    # lstep is the line step; e.g. 1 for every line, 2 for every other line in fitting
+    lstep = 1
     if carouselData == None or carouselCal == None:
-        print "must load data first"
+        print("must load data first")
         return
     if not carouselData.valid or not carouselCal.valid:
-        print "data not correctly loaded"
+        print("data not correctly loaded")
         return
     defMat = "Cu"
     fit = cu.fitData(carouselData, carouselCal, defMat)
@@ -285,8 +295,8 @@ def fitAtt(string):
         np.seterr(over='ignore',invalid='ignore')
 
     x = np.zeros(4+np.sum(vary))
-    if len(string) == 5:
-        print "Fitting variables: ",np.sum(vary)+4
+    if len(string) == 2 or len(string) == 3:
+        print("Fitting variables: ",np.sum(vary)+4)
         # The fit function consists of 3 polynomial expressions in the
         # the line number, plus a possible polynomial in the energy.
         # Initial values for the zero order terms are
@@ -297,37 +307,37 @@ def fitAtt(string):
         x[offset] = startX[1]
         offset = offset+1+vary[2]
         x[offset] = startX[2]
-        nlines = int(string[1])
-    elif len(string) == 2:
-        nlines = int(string[1])
-        if len(res) == len(x):
-            x = res
-        else:
-            print "Using zero initial guess"
+        try:
+            nlines = int(string[1])
+            if len(string) == 3:
+                lstep = int(string[2])
+        except:
+            print("Wrong arguments: fitatt nlines [linestep]")
+            return
     else:
-        print "wrong number of args: need fitatt nlines x1 x2 x3"
-        print "where nlines=number of lines to fit and x1/2/3 are initial values"
-        print "for the unknowns: target width, ln(detector width), filter width"
+        print("wrong number of args: need fitatt nlines [linestep]")
+        print("where nlines=number of lines to fit and lstep is step between")
+        print("lines, default 1")
         return
     if nlines < 1 or nlines > carouselCal.lines:
-        print "fit lines out of range, must be 1 to ",carouselCal.lines
+        print("fit lines out of range, must be 1 to ",carouselCal.lines)
         return
     fit.vary_target = vary[0]
     fit.vary_detector = vary[1]
     fit.vary_filter = vary[2]
     fit.vary_energy = vary[3]
     t0 = timeit.default_timer()
-    res,cov,infodict,mesg,ier = fit.dofit(nlines,x)
+    res,cov,infodict,mesg,ier = fit.dofit(nlines,lstep,x)
     tim = timeit.default_timer()-t0
-    print "time=",tim
-    print "dofit returned: "
-    print " best fit values = ",res
+    print("time=",tim)
+    print("dofit returned: ")
+    print(" best fit values = ",res)
     if ier>0 and ier<5:
-        print " ier = ",ier
+        print(" ier = ",ier)
     else:
-        print "** Fit failed: ier=",ier
-        print "   message=",mesg
-    print " iterations = ",infodict["nfev"]
+        print("** Fit failed: ier=",ier)
+        print("   message=",mesg)
+    print(" iterations = ",infodict["nfev"])
     # measure error
     samples = carouselCal.samples
     ofile = open('fit.log','w')
@@ -375,7 +385,7 @@ def fitAtt(string):
         if sumsq>summax:
             summax = sumsq
         if debug:
-            print "Line: ",line," ave error:",sumsq
+            print("Line: ",line," ave error:",sumsq)
         # save poly data to param.log
         rfile.write('{0:5d} '.format(line)+str(polyfit[line,:])+'\n')
     # write data in binary file
@@ -383,8 +393,8 @@ def fitAtt(string):
     np.save(bfile,polyfit)
     bfile.close()
     #
-    print "average error: ",sumtot/nlines
-    print "max error: ",summax
+    print("average error: ",sumtot/nlines)
+    print("max error: ",summax)
     rfile.write("average error: {0:12.6f}\nmax error: {1:12.6f}\n".format(sumtot/nlines,summax))
     plt.figure(FIG_ERR)
     plt.plot(lsumsq)
@@ -421,6 +431,7 @@ def initGuess(string):
     except:
         print("initguess requires 3 floating point values: dt, ln(dd) and df. dt is the target "+
               "absortion width, ln(dd) is the log of detector width, and df the filter width.")
+        print("Current guess = ",startX[0:3])
 
 
 def setWidth(words):
@@ -429,14 +440,15 @@ def setWidth(words):
         try:
             width = float(words[1])
             carouselCal.width = width
+            carouselCal.setWidthAve(width)
         except:
-            print "load carousel data before setting width"
+            print("load carousel data before setting width")
             return
     else:
         try:
-            print "width= ",carouselCal.width, " (No. of pixels about centre of line to average)"
+            print("width= ",carouselCal.width, " (No. of pixels about centre of line to average)")
         except:
-            print "width not set until carousel data loaded"
+            print("width not set until carousel data loaded")
 
 
 def showCalConf(string):
@@ -444,41 +456,41 @@ def showCalConf(string):
     try:
         filterCount = carouselCal.filterCount
     except NameError:
-        print "** must read calibration data first"
+        print("** must read calibration data first")
         return
-    print "filter count = ", filterCount
-    print "filter  material width    density   fittable"
+    print("filter count = ", filterCount)
+    print("filter  material width    density   fittable")
     for i in range(filterCount):
-        print  '{0:4d}     {1:7s} {2:7f} {3:7f}'.format(i,
+        print('{0:4d}     {1:7s} {2:7f} {3:7f}'.format(i,
                carouselCal.filterMaterial[i],
-               carouselCal.filterWidth[i], carouselCal.filterDensity[i])
-    print "Detector:"
-    print '         {0:7s} {1:7f} {2:7f}'.format(
+               carouselCal.filterWidth[i], carouselCal.filterDensity[i]))
+    print("Detector:")
+    print('         {0:7s} {1:7f} {2:7f}'.format(
                carouselCal.detectorMaterial,
-               carouselCal.detectorWidth, carouselCal.detectorDensity)
-    print "Source filter:"
-    print '         {0:7s} {1:7f} {2:7f}'.format(carouselCal.targetMat,
-               0.0, carouselCal.targetDensity)
-    print "Voltage=",  carouselCal.voltage, " angle=", carouselCal.angle
+               carouselCal.detectorWidth, carouselCal.detectorDensity))
+    print("Source filter:")
+    print('         {0:7s} {1:7f} {2:7f}'.format(carouselCal.targetMat,
+               0.0, carouselCal.targetDensity))
+    print("Voltage=",  carouselCal.voltage, " angle=", carouselCal.angle)
 
 def setVary(strlst):
     """ define polynomial order of parameters to fit """
     global vary
     if len(strlst)==1:
-        print "Control order of polynomial used for fitting across lines"
-        print " - 3 widths are fitted for target, detector and filter"
-        print " - Experimental is to set energy dependence away from linear"
-        print "settings:"
-        print "target: ",vary[0]
-        print "detector: ",vary[1]
-        print "filter: ",vary[2]
-        print "energy dependence: ",vary[3]
+        print("Control order of polynomial used for fitting across lines")
+        print(" - 3 widths are fitted for target, detector and filter")
+        print(" - Experimental is to set energy dependence away from linear")
+        print("settings:")
+        print("target: ",vary[0])
+        print("detector: ",vary[1])
+        print("filter: ",vary[2])
+        print("energy dependence: ",vary[3])
         return
     if len(strlst)==3:
         try:
             npo = int(strlst[2])
         except:
-            print "** failed to read npo"
+            print("** failed to read npo")
             npo = 0
         if strlst[1]=="target":
             vary[0] = npo
@@ -489,37 +501,37 @@ def setVary(strlst):
         elif strlst[1]=="energy":
             vary[3] = npo
         else:
-            print "Not recognised: ",strlst[1]
+            print("Not recognised: ",strlst[1])
     else:
-        print "syntax: vary [target|detector|filter|energy n]"
+        print("syntax: vary [target|detector|filter|energy n]")
 
 def debugToggle(cmd):
     """ toggle debug """
     global debug
     debug = not debug
-    print "debug set to ",debug
+    print("debug set to ",debug)
 
 
 def helpCar(cmd, string):
-    """ just print list of commands"""
-    print "Carousel calibration utility"
-    print " "
-    print "cmds:"
+    """ just print(list of commands"""
+    print("Carousel calibration utility")
+    print(" ")
+    print("cmds:")
     for i in cmd:
-        print "  ", i
-    print " "
-    print "To execute script file use: read <filename>"
-    print " "
-    print "The required input is a set of images of test pieces imaged at the exact same"
-    print "Xray settings as the sample. These may be in a carousel or a crown device. The"
-    print "details of each test item (material/density/thickness) must be provided in a"
-    print "file in './carouselData'. Using these images a fit is made to the effective"
-    print "energy response function of the Xray source/detector. Using this fit a correction"
-    print "curve can be determined to map from observed attenuation to true attenuation of the"
-    print "dominant Xray material of the sample. This will be inaccurate on samples with muliple"
-    print "material types in them. The output is a file of polynomial fits giving the corrections"
-    print "which can be used in the python program 'applyTransForm.py'"
-    print " "
+        print("  ", i)
+    print(" ")
+    print("To execute script file use: read <filename>")
+    print(" ")
+    print("The required input is a set of images of test pieces imaged at the exact same")
+    print("Xray settings as the sample. These may be in a carousel or a crown device. The")
+    print("details of each test item (material/density/thickness) must be provided in a")
+    print("file in './carouselData'. Using these images a fit is made to the effective")
+    print("energy response function of the Xray source/detector. Using this fit a correction")
+    print("curve can be determined to map from observed attenuation to true attenuation of the")
+    print("dominant Xray material of the sample. This will be inaccurate on samples with muliple")
+    print("material types in them. The output is a file of polynomial fits giving the corrections")
+    print("which can be used in the python program 'applyTransForm.py'")
+    print(" ")
 
 def setCorMat(words):
     """ Input the name of the material that will be the target of the attenuation correction
@@ -531,20 +543,20 @@ def setCorMat(words):
         try:
             corEn = float(words[2])
         except:
-            print "failed to read energy value"
+            print("failed to read energy value")
             return
     else:
         if corMat.name != "":
-            print "corMat is set to ",corMat.name," and energy ",corEn,"KeV"
+            print("corMat is set to ",corMat.name," and energy ",corEn,"KeV")
         else:
-            print "corMat is not set"
+            print("corMat is not set")
         return
     name = words[1]
-    print "reading correction material definition from file: ",name
+    print("reading correction material definition from file: ",name)
     try:
         corMat = cu.materialAtt(name,1.0)
     except:
-        print "error reading material type"
+        print("error reading material type")
 
 def mask(words):
     """ show or set a mask array which is used to define if some of the sample data
@@ -553,10 +565,10 @@ def mask(words):
     """
     global carouselData, carouselCal
     if carouselData== None:
-        print "must load data first"
+        print("must load data first")
         return
     if len(words) == 1:
-        print "Mask = ",carouselData.mask
+        print("Mask = ",carouselData.mask)
     elif words[1] == "off":
         carouselData.mask.fill(False)
     else:
@@ -568,9 +580,9 @@ def mask(words):
                 elif num < 0:
                     carouselData.mask[-num-1] = False
                 else:
-                    print "Warning: label 0 ignored"
+                    print("Warning: label 0 ignored")
         except:
-            print "Error: bad value in list"
+            print("Error: bad value in list")
 
 def transform(words):
     """ TEST code to try and fix up RCaH data; this is only a fudge; must get right data
@@ -579,9 +591,9 @@ def transform(words):
     """
     global carouselData, carouselCal
     if len(words)<2:
-        print "transform command is a test command. Was used to map image intensity"
-        print " data I to log(I0/I), in the case where only I is provided. Now redundant"
-        print " as uint16 data is assumed to include I0 image at start and transform applied."
+        print("transform command is a test command. Was used to map image intensity")
+        print(" data I to log(I0/I), in the case where only I is provided. Now redundant")
+        print(" as uint16 data is assumed to include I0 image at start and transform applied.")
         return
     I0 = float(words[1])
     nsamp = len(carouselData.mask)-1
@@ -589,7 +601,7 @@ def transform(words):
         z = carouselCal.getImage(i)
         zerocount = sum(sum(z<=0))
         if zerocount>0:
-            print "zeros for sample ",i," are ",zerocount
+            print("zeros for sample ",i," are ",zerocount)
         z[z<=0] = 1e-4
         z = np.log(z)
         z = np.log(I0) - z
@@ -641,15 +653,15 @@ if __name__ == "__main__":
     debug = False
     carouselCal = None
 
-    print " "
-    print " *** Carousel data fitting program ***"
-    print " "
-    print " Code based on algorithms developed at Queen Mary University"
-    print " of London by Graham Davis, Anthony Evershed et al"
-    print " This implementation by Ron Fowler at STFC"
-    print " contact ronald.fowler@stfc.ac.uk"
-    print " Funded by the CCPi project"
-    print " "
+    print(" ")
+    print(" *** Carousel data fitting program ***")
+    print(" ")
+    print(" Code based on algorithms developed at Queen Mary University")
+    print(" of London by Graham Davis, Anthony Evershed et al")
+    print(" This implementation by Ron Fowler at STFC")
+    print(" contact ronald.fowler@stfc.ac.uk")
+    print(" Funded by the CCPi project")
+    print(" ")
     # set the polynomial order of the fitting variables. Variables are
     # function of line number.
     vary = np.zeros(4,dtype='int')
@@ -667,7 +679,7 @@ if __name__ == "__main__":
                     filein = False
                     infile.close()
                     continue
-                print " bhc: ",cmd
+                print(" bhc: ",cmd)
             else:
                 cmd = raw_input("bhc: ").strip()
         except EOFError as ex:
@@ -682,7 +694,7 @@ if __name__ == "__main__":
                     infile = open(rfile,'r')
                     filein = True
                 else:
-                    print "Error - syntax: read file"
+                    print("Error - syntax: read file")
                     continue
             elif words[0] == "#":
                 continue
@@ -692,8 +704,8 @@ if __name__ == "__main__":
             sys.exit("quit")
         except KeyError as ex:
             if not ( words[0] == "" ):
-                print "** command not found: ", words[0]
+                print("** command not found: ", words[0])
         except:
-            print "** internal error: ", sys.exc_info()[0]
+            print("** internal error: ", sys.exc_info()[0])
             raise
 
