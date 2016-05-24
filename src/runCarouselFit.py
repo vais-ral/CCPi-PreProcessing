@@ -88,16 +88,17 @@ def showSpec(string):
             except ValueError:
                 print("Unrecognised line number")
                 return
-            if line<0:
-                print("line must be >=0")
+            if line<0 or line>=fit.nlines:
+                print("line must be >=0 and < ",fit.nlines)
                 return
         if carouselCal.filterCount>0:
             n = len(xSpec.getS())
             attSpec = np.copy(yval)*norm
             try:
-                tw,dw,fw,ec = fit.calcWidths(res,1,xSpec.getE())
+                tw,dw,fw,ec = fit.calcWidths(res,fit.nlines,xSpec.getE())
                 varf = fit.varFilter
             except:
+                line = 0
                 print("No fit, using preset values")
                 tw= [0.]
                 dw= [0.1]
@@ -420,7 +421,7 @@ def fitAtt(string):
     ofile.close()
     rfile.close()
 
-def initGuess(string):
+def initGuess(words):
     """ Set initial values to use for the variables of the target absortion width, detector
     width and filter width """
     global startX

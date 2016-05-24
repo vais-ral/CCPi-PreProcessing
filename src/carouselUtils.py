@@ -529,15 +529,7 @@ class fitData(object):
             # self.isValid = False
         self.atten = np.zeros([self.carCal.lines,self.carInfo.getSamples()])
         self.objFnCalls = 0
-        #if len([m for m in carCal.filterMaterial if defMat in m]) > 0 :
-        #    self.defMat=defMat
-        #    self.defFilter='global'
-        #else:
-        #    self.defMat=""
-        #    self.defFilter="none"
-        #    self.isValid=False
-        #    return
-        #self.isValid=True
+        self.nlines = 0
 
     def calcWidths(self,x0,nlines,xe):
         """ Function to return the 3 widths for the target,
