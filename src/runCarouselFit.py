@@ -8,6 +8,7 @@
     code assumes that spectral data is available in the "spectra"
     subdirectory which is currently in test.
     Most of the fitting operations are implemented in the file carouselUtils.py.
+    This code should run on both Python 2 and Python 3.
 """
 from __future__ import print_function
 import sys
@@ -409,7 +410,7 @@ def fitAtt(string):
     xnum = np.array(range(nsamp))+1
     plt.subplot(211)
     plt.plot(xnum,avatt[0,:],'bx')
-    mark = markerErr.next()
+    mark = next(markerErr)
     plt.plot(xnum,avatt[1,:],marker=mark)
     plt.xlabel('sample number')
     plt.ylabel('log(I0/I)')
@@ -682,7 +683,10 @@ if __name__ == "__main__":
                     continue
                 print(" bhc: ",cmd)
             else:
-                cmd = raw_input("bhc: ").strip()
+                if sys.version_info.major == 2:
+                    cmd = raw_input("bhc: ").strip()
+                else:
+                    cmd = input("bhc: ").strip()
         except EOFError as ex:
             sys.exit("EOF")
         words = cmd.split(" ")
