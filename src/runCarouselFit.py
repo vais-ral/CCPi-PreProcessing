@@ -20,11 +20,11 @@ import numpy as np
 import itertools as it
 from numpy.polynomial.polynomial import polyval
 #from carouselUtils import *
-import carouselUtils as cu
 try:
     import matplotlib.pyplot as plt
 except ImportError:
     sys.exit("Error: cant find matplotlib")
+import carouselUtils as cu
 import pdb
 
 markerErr = it.cycle((',', '+', '.', 'o', '*'))
@@ -398,27 +398,30 @@ def fitAtt(string):
     print("average error: ",sumtot/nlines)
     print("max error: ",summax)
     rfile.write("average error: {0:12.6f}\nmax error: {1:12.6f}\n".format(sumtot/nlines,summax))
-    plt.figure(FIG_ERR)
-    plt.plot(lsumsq)
-    plt.xlabel('line number')
-    plt.ylabel('mean sq error')
-    plt.draw()
-    plt.show(block=False)
-    #
-    plt.figure(FIG_ATTCOMP)
-    nsamp = len(avatt[0,:])
-    xnum = np.array(range(nsamp))+1
-    plt.subplot(211)
-    plt.plot(xnum,avatt[0,:],'bx')
-    mark = next(markerErr)
-    plt.plot(xnum,avatt[1,:],marker=mark)
-    plt.xlabel('sample number')
-    plt.ylabel('log(I0/I)')
-    plt.subplot(212)
-    plt.plot(xnum,avatt[0,:]-avatt[1,:],marker=mark)
-    plt.ylabel('err log(I0/I)')
-    plt.draw()
-    plt.show(block=False)
+    try:
+        plt.figure(FIG_ERR)
+        plt.plot(lsumsq)
+        plt.xlabel('line number')
+        plt.ylabel('mean sq error')
+        plt.draw()
+        plt.show(block=False)
+        #
+        plt.figure(FIG_ATTCOMP)
+        nsamp = len(avatt[0,:])
+        xnum = np.array(range(nsamp))+1
+        plt.subplot(211)
+        plt.plot(xnum,avatt[0,:],'bx')
+        mark = next(markerErr)
+        plt.plot(xnum,avatt[1,:],marker=mark)
+        plt.xlabel('sample number')
+        plt.ylabel('log(I0/I)')
+        plt.subplot(212)
+        plt.plot(xnum,avatt[0,:]-avatt[1,:],marker=mark)
+        plt.ylabel('err log(I0/I)')
+        plt.draw()
+        plt.show(block=False)
+    except:
+        print("Plotting failed")
     ofile.close()
     rfile.close()
 
