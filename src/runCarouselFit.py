@@ -688,7 +688,10 @@ if __name__ == "__main__":
                 else:
                     cmd = input("bhc: ").strip()
         except EOFError as ex:
-            sys.exit("EOF")
+            logging.info('bhc: EOF')
+            print("EOF")
+            sys.exit(0)
+        logging.info('bhc: '+cmd)
         words = cmd.split(" ")
         try:
             if words[0] == "help":
