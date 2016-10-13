@@ -612,6 +612,15 @@ def transform(words):
         z = np.log(I0) - z
         carouselCal.getImage(i)[:,:] = z
 
+def checkVersions():
+    import matplotlib as mpl
+    def versiontuple(v):
+        return tuple(map(int, (v.split("."))))
+    if versiontuple(mpl.__version__) < versiontuple('1.1'):
+        print("Matplotlib version too old, need at least 1.1; have ",mpl.__version__)
+        sys.exit(0)
+        
+
 
 # Set of commands that are implemented and the corresponding function names.
 # Additional commands and functions can be added here.
@@ -648,6 +657,7 @@ global carouselData, carouselCal, startX
 carouselData = None
 carouselCal = None
 startX = np.array([0.01,-6.0,0.01])
+checkVersions()
 
 if __name__ == "__main__":
     logging.basicConfig(filename='runCarouselFit.log',level=logging.INFO)
@@ -686,7 +696,8 @@ if __name__ == "__main__":
                     continue
                 print(" bhc: ",cmd)
             else:
-                if sys.version_info.major == 2:
+                #if sys.version_info.major == 2:
+                if sys.version_info[0] == 2:
                     cmd = raw_input("bhc: ").strip()
                 else:
                     cmd = input("bhc: ").strip()
