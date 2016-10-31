@@ -515,6 +515,8 @@ class fitData(object):
         self.vary_detector=1  #3
         self.vary_filter=0
         self.vary_energy=-1
+        # make space for default values to use if vary==-1
+        self.defaults = np.zeros(4)
         #
         self.nlines = 0
         # since there may be several filters, define which one should vary
@@ -563,12 +565,21 @@ class fitData(object):
             print("** calcWidthd called with too few values in x0")
             sys.exit(1)
         # Polynomial expressions: highest order term is first in the array.
-        twidth=np.polyval(x0[:nt],lines)
+        if nt>0:
+            twidth=np.polyval(x0[:nt],lines)
+        else:
+            twidth=np.polyval(self.defaults[0:1],lines)
         #twidth=np.polyval(x0[nt-1:0:-1],lines)
-        dwidth=np.polyval(x0[nt:nt+nd],lines)
+        if nd>0:
+            dwidth=np.polyval(x0[nt:nt+nd],lines)
+        else:
+            dwidth=np.polyval(self.defaults[1:2],lines)
         #dwidth=np.polyval(x0[nt+nd-1:nt:-1],lines)
         dwidth = np.exp( dwidth ) # force >0 by working in log space
-        fwidth=np.polyval(x0[nt+nd:nt+nd+nf],lines)
+        if nf>0:
+            fwidth=np.polyval(x0[nt+nd:nt+nd+nf],lines)
+        else:
+            fwidth=np.polyval(self.defaults[2:3],lines)
         if ne>0:
             # This term should be constrained as >=0 for all xe but is not at present.
             # -Ve values will give errors in output stage.

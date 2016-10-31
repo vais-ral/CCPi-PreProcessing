@@ -296,6 +296,9 @@ def fitAtt(string):
     else:
         np.seterr(over='ignore',invalid='ignore')
 
+    if np.max(vary)<0:
+        print("** Error: no parameters to fit, check setvary")
+        return
     x = np.zeros(4+np.sum(vary))
     if len(string) == 2 or len(string) == 3:
         print("Fitting variables: ",np.sum(vary)+4)
@@ -303,12 +306,19 @@ def fitAtt(string):
         # the line number, plus a possible polynomial in the energy.
         # Initial values for the zero order terms are
         # given here, the higher terms (if any) are set to zero.
+        # Updated to allow any of the variables to be excluded from the fit (-1)
+        # In this case the initial value, in startX, should be used, which is passed
+        # to fit.
         offset = vary[0]
-        x[offset] = startX[0]
+        if vary[0]>-1:
+            x[offset] = startX[0]
         offset = offset+1+vary[1]
-        x[offset] = startX[1]
+        if vary[1]>-1:
+            x[offset] = startX[1]
         offset = offset+1+vary[2]
-        x[offset] = startX[2]
+        if vary[2]>-1:
+            x[offset] = startX[2]
+        fit.defaults[:3] = startX
         try:
             nlines = int(string[1])
             if len(string) == 3:
@@ -485,7 +495,9 @@ def setVary(strlst):
         print("Control order of polynomial used for fitting across lines")
         print(" - 3 widths are fitted for target, detector and filter")
         print(" - Experimental is to set energy dependence away from linear")
-        print("settings:")
+        print(" - If using energy, suggest only 0 order and check results")
+        print(" - using -1 implies do not vary parameter, ONLY FOR ENERGY")
+        print("current settings:")
         print("target: ",vary[0])
         print("detector: ",vary[1])
         print("filter: ",vary[2])
@@ -497,6 +509,9 @@ def setVary(strlst):
         except:
             print("** failed to read npo")
             npo = 0
+        if npo<-1 or npo>3:
+           print("** Order must be range -1 to 3")
+           return
         if strlst[1]=="target":
             vary[0] = npo
         elif strlst[1]=="detector":
