@@ -561,7 +561,8 @@ class fitData(object):
         nd=self.vary_detector+1
         nf=self.vary_filter+1
         ne=self.vary_energy+1
-        if len(x0)<nt+nd+nf+ne:
+        ns=self.vary_epk+self.vary_ewidlow+self.vary_ewidhigh+3
+        if len(x0)<nt+nd+nf+ne+ns:
             print("** calcWidthd called with too few values in x0")
             sys.exit(1)
         # Polynomial expressions: highest order term is first in the array.
@@ -583,10 +584,19 @@ class fitData(object):
         if ne>0:
             # This term should be constrained as >=0 for all xe but is not at present.
             # -Ve values will give errors in output stage.
-            ecoeffs = xe + xe*xe*(np.polyval(x0[nt+nd+nf:],xe))
+            ecoeffs = xe + xe*xe*(np.polyval(x0[nt+nd+nf:nt+nd+nf+ne],xe))
         else:
             ecoeffs = xe
-        return twidth,dwidth,fwidth,ecoeffs
+        if ns>0:
+            i0 = nt+nd+nf+ne
+            indarr = xe>x0[i0:i0+1]
+            spectra = xe-x0[i0:i0+1]
+            spectra[indarr] = spectra[indarr]*x0[i0+1:i0+2]
+            spectra[~indarr] = spectra[~indarr]*x0[i0+2:i0+3]
+            spectra = np.exp(-spectra**2)
+        else:
+            spectra = 0.
+        return twidth,dwidth,fwidth,ecoeffs,spectra
 
     def dofit(self,nlines,lstep,xin):
         """ perform fit """
@@ -624,11 +634,14 @@ class fitData(object):
         # target and detector widths depend on line number, filter is a global value
         # for flexiblity all 3 are dimesioned by nlines
         xe = self.carCal.spec.getE()
-        tw,dw,fw,ec = self.calcWidths(x,self.nlines,xe)
+        tw,dw,fw,ec,spectra = self.calcWidths(x,self.nlines,xe)
         nsamples = self.carInfo.numSamples - 1 # ignore null sample
         ans = np.zeros(nsamples*self.nlines)
         tarAtt = self.carCal.targetAtten
-        se = self.carCal.spec.getS()
+        if isinstance(spectra,np.ndarray):
+            se = spectra
+        else:
+            se = self.carCal.spec.getS()
         #
         for line in range(0,self.nlines,self.lineStep):
             # compute filter attenuation and hence i0 as signal level with no sample for this line
@@ -702,28 +715,46 @@ class fitData(object):
         # target and detector widths depend on line number, filter is a global value
         # for flexiblity all 3 are dimesioned by nlines. Also the energy parameter, if fitted.
         xe = self.carCal.spec.getE()
-        tw,dw,fw,ec = self.calcWidths(soln,self.nlines,xe)
+        tw,dw,fw,ec,spectra = self.calcWidths(soln,self.nlines,xe)
         #nsamples = self.carInfo.numSamples
         # allocate space to store all calculated points and polynomials fitted to them
         attout = np.zeros(shape=(self.nlines,npoints+1))
+        # set order of polynomial fits to use
+        # for xtek a 4th order polynomial can be used by the reconstruction - note
+        # that as constant term is forced to zero, 3 gives 4th order
         odpoly = 8
+        xtekodpoly = 3
+        # determine if the solution varies with line number; if not only one fit required
+        vary_line = (self.vary_target>0 or self.vary_detector>0 or self.vary_filter>0)
         #
         # find the actual attenuation of the correction material at the correction energy
         corrAtt = corMat.getMuByE(corEn)
 
         tarAtt = self.carCal.targetAtten
-        se = self.carCal.spec.getS()
+        #
+        if isinstance(spectra,np.ndarray):
+            se = spectra
+        else:
+            se = self.carCal.spec.getS()
+        #
 
         # generate points to evaluate attenuation at.
         mulist = np.arange(npoints+1,dtype='float')*attrange/(npoints*corrAtt)
         # attin is the observed attenuation; for each line want to find corresponding attout
         # the "true" attenuation at energy corEn
         attin = mulist*corrAtt
-        polyfit = np.zeros(shape=(self.nlines,odpoly+2))
         #
         # for each line generate npoints values of attenuation from fit data
         #
-        for line in range(self.nlines):
+        if vary_line:
+           nlines = self.nlines
+        else:
+           nlines = 1
+        #
+        polyfit = np.zeros(shape=(nlines,odpoly+2))
+        xpolyfit = np.zeros(shape=(nlines,xtekodpoly+2))
+        #
+        for line in range(nlines):
             # compute filter attenuation and hence i0 as signal level with no sample for this line
             attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)]
             attSum = np.zeros(len(xe))
@@ -764,6 +795,7 @@ class fitData(object):
             #
             try:
                 polyfit[line,0:odpoly+1] = np.polyfit(attout[line,1:],attin[1:]/attout[line,1:],odpoly)
+                xpolyfit[line,0:xtekodpoly+1] = np.polyfit(attout[line,1:],attin[1:]/attout[line,1:],xtekodpoly)
             except:
                 print("*** Polynomial fit of result failed")
         #
@@ -774,4 +806,4 @@ class fitData(object):
         # through (0,0) can divide y values by x values, ignoring origin (first point in this case).
         #
 
-        return attout,attin,polyfit
+        return attout,attin,polyfit,xpolyfit

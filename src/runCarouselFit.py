@@ -78,10 +78,6 @@ def showSpec(string):
         return
     if xSpec.valid:
         plt.figure(FIG_SPEC)
-        yval = np.zeros(xSpec.getS().size)
-        norm = np.sum(xSpec.getS())
-        yval = xSpec.getS()/norm
-        plt.plot(xSpec.getE(), yval,label='raw')
         line = 0
         if len(string) > 1 :
             try:
@@ -94,10 +90,20 @@ def showSpec(string):
                 return
         if carouselCal.filterCount>0:
             n = len(xSpec.getS())
-            attSpec = np.copy(yval)*norm
             try:
-                tw,dw,fw,ec = fit.calcWidths(res,fit.nlines,xSpec.getE())
+                # this is PATCHED UP to get the Gaussian spectra if this option
+                # has been selected and to push this into the calculation pipeline
+                # HOWEVER the above plot has not been fixed up, neither has contant
+                # values for others??? Or is that done by calcWidths?
+                tw,dw,fw,ec,spectra = fit.calcWidths(res,fit.nlines,xSpec.getE())
                 varf = fit.varFilter
+                if isinstance(spectra,np.ndarray):
+                    norm = np.sum(spectra)
+                    attSpec = spectra/norm
+                else:
+                    norm = np.sum(xSpec.getS())
+                    attSpec = xSpec.getS()/norm
+                plt.plot(xSpec.getE(), attSpec,label='raw')
             except:
                 line = 0
                 print("No fit, using preset values")
@@ -122,11 +128,11 @@ def showSpec(string):
             meanE = np.sum(attSpec*xSpec.getE())
             dev2 = np.sum(attSpec*xSpec.getE()*xSpec.getE()) - meanE*meanE
             print("For filtered spectrum:")
-            print("mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",norm/norma)
+            print("mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",1.0/norma)
             #
             dE = xSpec.getE()[1]-xSpec.getE()[0]
             nmean = int(meanE/dE)
-            print(" atten ratio at mean energy = ",xSpec.getS()[nmean]/(attSpec[nmean]*norma))
+            print(" atten ratio at mean energy = ",xSpec.getS()[nmean]/(attSpec[nmean]*norma*norm))
             #
             expo = -carouselCal.targetAtten.getMu()[0:n]*tw[line]
             expo[expo>600] = 600
@@ -139,7 +145,7 @@ def showSpec(string):
             meanE = np.sum(resSpec*xSpec.getE())
             dev2 = np.sum(resSpec*xSpec.getE()*xSpec.getE()) - meanE*meanE
             print("For response spectrum:")
-            print("mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",norm/norma)
+            print("mean E =",meanE," std dev = ",np.sqrt(dev2)," total atten ratio = ",1.0/norma)
             #
             if carouselCal.whiteLevel>0:
                 print("Calculation used whiteLevel = ",carouselCal.whiteLevel)
@@ -279,7 +285,7 @@ def fitAtt(string):
         correction purposes.
         """
     global carouselData, carouselCal, xSpec, debug, vary
-    global res,xtab,ytab,fit,polyfit
+    global res,xtab,ytab,fit,polyfit,xpolyfit
     # lstep is the line step; e.g. 1 for every line, 2 for every other line in fitting
     lstep = 1
     if carouselData == None or carouselCal == None:
@@ -299,9 +305,9 @@ def fitAtt(string):
     if np.max(vary)<0:
         print("** Error: no parameters to fit, check setvary")
         return
-    x = np.zeros(4+np.sum(vary))
+    x = np.zeros(7+np.sum(vary))
     if len(string) == 2 or len(string) == 3:
-        print("Fitting variables: ",np.sum(vary)+4)
+        print("Fitting variables: ",np.sum(vary)+len(vary))
         # The fit function consists of 3 polynomial expressions in the
         # the line number, plus a possible polynomial in the energy.
         # Initial values for the zero order terms are
@@ -318,7 +324,16 @@ def fitAtt(string):
         offset = offset+1+vary[2]
         if vary[2]>-1:
             x[offset] = startX[2]
-        fit.defaults[:3] = startX
+        offset = offset+2+vary[3]+vary[4]
+        if vary[4]>-1:
+            x[offset] = startX[4]
+        offset = offset+1+vary[5]
+        if vary[5]>-1:
+            x[offset] = startX[5]
+        offset = offset+1+vary[6]
+        if vary[6]>-1:
+            x[offset] = startX[6]
+        fit.defaults = startX
         try:
             nlines = int(string[1])
             if len(string) == 3:
@@ -338,6 +353,9 @@ def fitAtt(string):
     fit.vary_detector = vary[1]
     fit.vary_filter = vary[2]
     fit.vary_energy = vary[3]
+    fit.vary_epk = vary[4]
+    fit.vary_ewidlow = vary[5]
+    fit.vary_ewidhigh = vary[6]
     t0 = timeit.default_timer()
     res,cov,infodict,mesg,ier = fit.dofit(nlines,lstep,x)
     tim = timeit.default_timer()-t0
@@ -377,7 +395,7 @@ def fitAtt(string):
     # polynomial fit to these curves for each line.
     attLnWid = 14.0
     attPts = 300
-    xtab,ytab,polyfit = fit.linesPolyFit(res,corMat,corEn,attPts,attLnWid)
+    xtab,ytab,polyfit,xpolyfit = fit.linesPolyFit(res,corMat,corEn,attPts,attLnWid)
     # find average and max error for each line
     rfile.write('polyfits '+str(polyfit.shape[0])+" "+str(polyfit.shape[1])+"\n")
     lsumsq = []
@@ -399,7 +417,12 @@ def fitAtt(string):
         if debug:
             print("Line: ",line," ave error:",sumsq)
         # save poly data to param.log
-        rfile.write('{0:5d} '.format(line)+str(polyfit[line,:])+'\n')
+        if len(polyfit[:,0])>line:
+            rfile.write('{0:5d} '.format(line)+str(polyfit[line,:])+'\n')
+    # write data for xtek
+    rfile.write('xpoly:\n')
+    for line in range(len(xpolyfit[:,0])):
+        rfile.write('{0:5d} '.format(line)+str(xpolyfit[line,:])+'\n')
     # write data in binary file
     bfile = open("polyfit.npz","wb")
     np.save(bfile,polyfit)
@@ -443,10 +466,18 @@ def initGuess(words):
         startX[0] = float(words[1])
         startX[1] = float(words[2])
         startX[2] = float(words[3])
+        if len(words)==8:
+            startX[3] = float(words[4])
+            startX[4] = float(words[5])
+            startX[5] = float(words[6])
+            startX[6] = float(words[7])
+        elif len(words)>4:
+            print("Some values ignored!")
     except:
-        print("initguess requires 3 floating point values: dt, ln(dd) and df. dt is the target "+
+        print("initguess requires 3 or 7 floating point values: dt, ln(dd) and df. dt is the target "+
               "absortion width, ln(dd) is the log of detector width, and df the filter width.")
-        print("Current guess = ",startX[0:3])
+        print("If 7 values used additional values are: energy coeff, spectral peak, low/high width")
+        print("Current guess = ",startX[0:7])
 
 
 def setWidth(words):
@@ -502,6 +533,7 @@ def setVary(strlst):
         print("detector: ",vary[1])
         print("filter: ",vary[2])
         print("energy dependence: ",vary[3])
+        print("spectra: ",vary[4])
         return
     if len(strlst)==3:
         try:
@@ -520,6 +552,13 @@ def setVary(strlst):
             vary[2] = npo
         elif strlst[1]=="energy":
             vary[3] = npo
+        elif strlst[1]=="spectra":
+            if npo>0:
+               print("Error: spectra can only take values -1 and 0 at present")
+               return
+            vary[4] = npo
+            vary[5] = npo
+            vary[6] = npo
         else:
             print("Not recognised: ",strlst[1])
     else:
@@ -671,7 +710,8 @@ FIG_ATTCOMP = "ObservedVsFittedAtten"
 global carouselData, carouselCal, startX
 carouselData = None
 carouselCal = None
-startX = np.array([0.01,-6.0,0.01])
+# initial guesses unless user changes them
+startX = np.array([0.01,-6.0,0.01,0.,20.,20.,20.])
 checkVersions()
 
 if __name__ == "__main__":
@@ -694,8 +734,8 @@ if __name__ == "__main__":
     print(" ")
     # set the polynomial order of the fitting variables. Variables are
     # function of line number.
-    vary = np.zeros(4,dtype='int')
-    vary[3] = -1
+    vary = np.zeros(7,dtype='int')
+    vary[3:] = -1
     # set an object for the material to which attenuation is to be corrected to;
     # this is null until the user provides one
     corMat = cu.materialAtt("",1.0)
