@@ -220,7 +220,12 @@ def showCor(string):
                 linevals.append(lineno)
             else:
                 print("skipping out of range value: ",lineno)
-    print("lines=",linevals)
+    # check if we actual have more than one line fitted
+    if len( polyfit[:,0] ) > 1 :
+        print("lines=",linevals)
+    else:
+        print("Only 1 line fitted to data; using line 0")
+        linevals = [0]
     #print(ytab[::30])
     #for line in linevals:
     #    xvals = polyval( xtab[0,:], polyfit[line,::-1])
