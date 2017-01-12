@@ -1,12 +1,14 @@
-\documentclass[a4paper]{article}
+\documentclass[a4paper,12pt]{article}
 \usepackage[a4paper]{geometry}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{authblk}
 
 \begin{document}
 
-\title{Beam Hardening Correction CarouselFit: User Guide}
+\title{Beam Hardening Correction CarouselFit: \\ User Guide}
 \author{Ronald Fowler}
+\affil{STFC Rutherford Appleton Laboratory}
 
 \maketitle
 
@@ -21,6 +23,7 @@ This software is based on the IDL package and ideas described in \cite{davis}.
 \end{abstract}
 
 \section{Introduction}
+
 Beam hardening is well known problem that is described in many works, see \cite{davis}.
 This software takes as input a number of images of well characterised samples and uses these
 to fit a simple model of the expected beam hardening (BH) to the observed data.
@@ -32,11 +35,20 @@ so ideally the calibration measurements should be made before and after each CT 
 In addition the model allows for variation in the form of $R(E)$ with the number of the scan line.
 This can occur due to the way the emitted X-ray spectra is known to depend on the ``take-off'' angle.
 
+Using the fitted response function of the system it is then possible to determin a correction curve
+that will map from the observed attenuation to the true attenuation that would be seen at a given
+monochromatic X-ray energy.
+This correction curve is calculated assuming the sample is composed of a single material type
+for which the X-ray attenuation coefficient can be determined, using a program such as XCOM\cite{xcom}.
+This allows for compound materials, as long as the composition is constant.
+In the case of samples made of more than one compound the correction curve will only be applicable
+if one material is the dominant absorber and corrections made to that material.
+
 The next section describes how to download and run the software.
 In section 3 we describe how to set up the necessary files that give
 information on the number and type of test images that are used for calibration and the
 image formats.
-Section 4 details how to the run the fitting an post-processing image modules of the software.
+Section 4 details how to the run the fitting and post-processing image modules of the software.
 The first of these fits the model to the data while the second applies the correction either
 directly to the CT image data or generates a look-up table to map observed attenuation values to
 mono-chromatic attenuation.
@@ -51,7 +63,15 @@ As well as a Python environment the software depends on a number of additional p
 An easy way to access most of the required packages is to download the Anaconda Python environment which is
 available for Linux, MacOS and Windows systems from \url{https://www.continuum.io/downloads}.
 It is recommended that the user installs this before installing the CarouselFit software.
-Alternatively the user may install the required packages in their local Python installation.
+Alternatively the user may install the required packages in their local Python installation, if they are not
+already available.
+The main Python modules that may need to be added to a local installation are:
+\begin{itemize}
+\item numpy - needed for array operations
+\item matplotlib - needed for plotting
+\item scipy - needed for optimization
+\item tifffile - only needed if corrections are to be applied to tiff images
+\end{itemize}
 
 The CarouselFit software can be checked out to a suitable directory using the command:
 \begin{verbatim}
@@ -68,19 +88,18 @@ should be made in the \texttt{carouselData} sub-directory.
 
 After downloading the software the installation can be checked by running Python in the \texttt{test} directory
 and reading the example script file.
-On Linux and MacOS this could be done from a command line. assuming that the Anaconda version of Python is loaded into
-the system PATH as:
+On Linux and MacOS this could be done from a command prompt, assuming that a suitable version of Python is in the system PATH by typing:
 \begin{verbatim}
   python ../src/runCarouselFit.py
   read script.short
   quit
 \end{verbatim}
 
-This set of commands should run without producing any error messages, such failure to import some modules.
-If a python other than Anaconda has been used it may be necessary to install additional libraries.
-Check the documentation for your Python system to see how to do this.
+This set of commands should run without producing any error messages (such as failure to import some modules).
+If missing modules are reported it will be necessary to add these and run the test script again.
+Check the documentation for your Python system to see how to add modules.
 
-On Windows systems Anaconda python can be accessed from the Start Menu aster it has been installed.
+On Windows systems Anaconda python can be accessed from the Start Menu after it has been installed.
 The software can be downloaded using the command line version of svn, e.g. via Cygwin, or using the GUI
 provided by TortoiseSVN \url{https://tortoisesvn.net/}.
 Once the software is installed, start an IP Python window (or similar) from the Start Menu and navigate to the 
@@ -134,7 +153,7 @@ For example, compare the attenuation of Sn with that of Ca in the range 0 to 75K
 
 The above file uses the simple format:
 \begin{itemize}
-\item{line1:} a comment line, starting with #, to describe the file
+\item{line1:} a comment line, starting with \#, to describe the file
 \item{line2:} a single integer giving the number of sample materials plus 1
 \item{line3:} a set of comma separated strings giving the names of each sample, with no spaces. the
 number of names must be the same as the previous number, with the final one named "NOTHING".
@@ -219,43 +238,73 @@ The available commands are:
 \begin{itemize}
 \item{\bf read \it{filename}} This command opens the given file and reads commands from it until end of file.
 Control is then returned to the command line. Do not include blank lines in the command script.
+
 \item{\bf load \it{file.def} \it{file.data}} This reads the definition file for the carousel and the data
 relating to the actual calibration images. These two files must exist and are described in the previous section.
 they are normally located in the \texttt{test/carouselData} directory.
+
 \item{\bf quit} Exit the program.
+
 \item{\bf help} Give a list of available commands.
-\item{\bf showcor \it{[l1 l2...]}} This command will plot the attenuation correction curve for any one or lines. If no arguments are given
+
+\item{\bf showcor \it{[l1 l2...]}} This command will plot the attenuation correction curve for any one or more lines. If no arguments are given
 it will plot the first, middle and last correction lines. The matplotlib zoom feature can be used to focus on a particular region of the
 plot. It can only be used after a fit has been performed.
+The correction is shown in the space of log(I0/I).
+
 \item{\bf showimag} This command will plot the images of each sample in one window. It may be useful to check for problems with the samples.
 It can only be used after data has been loaded.
-\item{\bf fitatt nlines \it{[linestep]}} This command attempts to fit the model to the selected samples. The
+
+\item{\bf fitatt nlines \it{[linestep]}} This command attempts to fit the model to the selected samples (see mask command). The
 number of lines of data to fit must be given. This maybe followed by a ``step'', e.g. 10 to use every 10th line.
 This can be useful when using many lines as fitting all of them can be very slow.
+The time to fit also increases with the number of variables that have been selected with the ``vary'' command.
+
 \item{\bf vary \it{[target|detector|filter|energy npoly]}} On its own this command lists the order of polynomial used in fitting the line wise
 dependence of each of the three main parameters, target width, detector width and filter width.
 Thus setting 0 for each of these would mean no variation across lines, while setting each as 1 gives a linear variation of each in line number.
 The fit time increases significantly with the order used.
-Extra terms also can be added to the normally linear dependence of the response to the photon energy; however this polynomial is not constrained
-to be positive and the fit may fail. Hence the vary value defaults to -1 which indicates no energy dependence.
+Extra terms also can be added to the normally linear dependence of the detector response to the photon energy;
+however this polynomial is not constrained to be positive and the fit may fail.
+Hence the vary value defaults to -1 which indicates no energy dependence and setting a value greater than 0 is not recommended.
+Note that there is no line dependence in the energy, even for values above 0; this just allow higher order energy terms.
+Another experimental option that has now been added is called ``spectra'', which also defaults to -1, i.e. not used.
+Setting spectra to 0 causes the calculated spectra to be replaced with a simple non-symmetric Gaussian form with 3 parameters,
+centre, left width and right width.
+This feature is only for advanced users and may not give good results.
+
 \item{\bf initguess \it{$s_1$ $s_2$ $s_3$}} Set the initial guess to be used by fitatt.
 $s_1$ is the width of the target filter (usually tungsten), $s_2$ is the log width of the detector (usually CsI) and $s-3$ is the width of the
 fitted filter (usually copper). Commonly used values for the initial guess are 0.01 -6.0 0.01.
+If using the experimental feature ``vary spectra 0'' than 4 additional values can be given which are the initial value of the
+energy term (should be zero) plus the Gaussian centre and widths, e.g. 0.01 -6.0 0.01 0.0 40.0 1.0 1.0.
+
 \item{\bf mask \it{[n1 n2..]}} Without arguments this shows the set of masks that control if a given sample will be used in the next fit operation.
 By default all values are true which means that sample will be used in the fit. Samples are labeled from 1 to $n$ and to mask the $m$ sample
 that number should be given as an argument to the mask command. A negative value can be used to unmask a previously masked sample.
-\item{\bf setcormat \it{material energy}} This command should be used before a fit operation to define the material and energy to which the correction
+
+\item{\bf setcormat \it{material energy}} This command must be used before a fit operation to define the material and energy to which the correction
 curve should be determined. For example \texttt{setcormat Al 40} sets the correction curve to be calculated for Aluminium at 40KeV.
 At present if the correction material or energy are altered it is necessary to rerun the fit command.
+
+\item{\bf transform} This is an experimental command which may be removed in future.
+
 \item{\bf showspec \it{[line]}} - plot three spectra, the input X-ray spectrum, the filtered spectrum and the response spectrum.
+Should only be used after a fit has been made. This command needs improving since the ``filtered'' plot is not meaningful.
+Also the printed attenuation values are not useful since these are not fitted to.
 If a line number is given, plots are for that line. The default is line 0.
+
 \item{\bf showatt \it[nsamp nline]} - plot the sample attenuations along a specific line. By default this shows the
 attenuation for all samples at line 400. Samples are labeled 0 to $n-1$ in this case.
+
 \item{\bf debug} - set debugging option, for diagnostic purposes only.
+
 \item{\bf showconf} - list some of the settings, such as the filters, detector, source and voltage.
+
 \item{\bf setwidth \it[width]} - without arguments, prints the width, in pixels, used to average over each line to get the mean
 attenuation. For the QMUL data, where the sample does not cover the whole image, it is important to ensure this does not
 exceed the true sample width. For the RCaH data, where the image does cover the whole width, a larger value can be used.
+
 \item{\bf setfilter \it[material width]} - without arguments lists the filters defined. Can also be used
 to change the width of existing filters, though not add new ones. Used for debugging.
 
@@ -341,6 +390,10 @@ of the white level since any pixels above this are mapped to no attenuation.
   \emph{Quantitative high contrast X-ray microtomography for dental research},
   Journal of Dentistry,
   Volume 41, Issue 5, May 2013, Pages 475–482.
+
+\bibitem{xcom}
+  M.J. Berger, J.H. Hubbell, S.M. Seltzer, J. Chang, J.S. Coursey, R. Sukumar, D.S. Zucker, and K. Olsen,
+  \emph{https://www.nist.gov/pml/xcom-photon-cross-sections-database}
 
 \end{thebibliography}
 
