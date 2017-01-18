@@ -5,7 +5,7 @@ for demo in script.testgd ; do
     #sed -e "s/HAVE_PYLAB = True/HAVE_PYLAB = False/" < $demo > tmpdemo.py
     echo "import matplotlib" > tmpdemo.py
     echo 'matplotlib.use("Agg")' >> tmpdemo.py
-    cat ../src/runCarousel.py >> tmpdemo.py
+    cat ../src/runCarouselFit.py >> tmpdemo.py
     echo -1 > dummy
     echo running $demo
     python tmpdemo.py < dummy
