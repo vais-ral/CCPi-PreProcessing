@@ -1,0 +1,20 @@
+#!/bin/bash
+PATH=/apps/anaconda/2.4/bin:$PATH
+ifail=0
+for demo in script.testgd ; do
+    #sed -e "s/HAVE_PYLAB = True/HAVE_PYLAB = False/" < $demo > tmpdemo.py
+    echo "import matplotlib" > tmpdemo.py
+    echo 'matplotlib.use("Agg")' >> tmpdemo.py
+    cat ../src/runCarousel.py >> tmpdemo.py
+    echo -1 > dummy
+    echo running $demo
+    python tmpdemo.py < dummy
+    if [ $? = 0 ]; then
+       echo OK
+    else
+       echo Failed
+       ifail=1
+    fi
+done
+echo exit with ifail=$ifail
+exit $ifail
