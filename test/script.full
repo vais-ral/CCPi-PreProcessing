@@ -14,4 +14,6 @@ vary detector 2
 # run a fit across all 800 lines of the test data set providing the three
 # initial guesses for the constant terms in the target, detector and filter
 # variables.
-fitatt 800 .01 -6 .01
+#fitatt 800 .01 -6 .01
+initguess .01 -6 .01
+fitatt 800
