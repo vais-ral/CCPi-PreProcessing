@@ -19,8 +19,11 @@ import time
 import numpy as np
 import itertools as it
 from numpy.polynomial.polynomial import polyval
-#from carouselUtils import *
+# import pyplot, checking if NOX11 env var set; if so use Agg plotting (no X11)
 try:
+    import matplotlib
+    if 'NOX11' in os.environ:
+       matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 except ImportError:
     sys.exit("Error: cant find matplotlib")
@@ -162,7 +165,7 @@ def showSpec(string):
 
 def quitCarousel(string):
     """ exit the command level """
-    sys.exit("quit called")
+    sys.exit(0)
 
 def showAtt(string):
     """ 1D plots of attenuation of sample n"""
@@ -677,7 +680,7 @@ def checkVersions():
         return tuple(map(int, (v.split("."))))
     if versiontuple(mpl.__version__) < versiontuple('1.1'):
         print("Matplotlib version too old, need at least 1.1; have ",mpl.__version__)
-        sys.exit(0)
+        sys.exit(1)
         
 
 
@@ -783,7 +786,7 @@ if __name__ == "__main__":
             else:
                 cmd_switch[words[0]](words)
         except SystemExit as ex:
-            sys.exit("quit")
+            sys.exit(0)
         except KeyError as ex:
             if not ( words[0] == "" ):
                 print("** command not found: ", words[0])
