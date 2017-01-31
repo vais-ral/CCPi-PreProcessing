@@ -9,11 +9,13 @@ showimg
 setcormat CaHydro 40.
 # define the order of polynomials (in line number) to use for fitting
 # the data.
+# Note recommend not to use polynomial for detector width as this variable
+# is not well defined and solver can fail to converge.
 vary target 2
-vary detector 2
+vary filter 2
 # run a fit across all 800 lines of the test data set providing the three
 # initial guesses for the constant terms in the target, detector and filter
 # variables.
-#fitatt 800 .01 -6 .01
 initguess .01 -6 .01
+# fit using all the data - may take a few minutes.
 fitatt 800
