@@ -78,12 +78,15 @@ class specData(object):
             If file not found, return spec=0 """
         filename = "./spectra/%s/%03d%03d.spc" % (target, voltage, angle*10)
         if not os.path.isfile(filename):
-            print("file not found: ", filename, " in specData")
-            self.valid = False
+            print("File not found: ", filename, " in spectra")
+            print("Only fitting with function spectra possible")
+            # just set energy array 0 to voltage, in 0.5KeV steps
+            estep=0.5
+            self.en = np.arange(voltage/estep+estep*0.5)*estep
         else:
             with open(filename, 'r') as fl:
                 self.en, self.amp = np.loadtxt(fl, unpack=True)
-            self.valid = True
+        self.valid = True
 
     def getE(self):
         """ return energy array; should remove """
@@ -546,6 +549,7 @@ class fitData(object):
         self.objFnCalls = 0
         self.nlines = 0
         self.linestep = 1
+        self.bounds = False
 
     def calcWidths(self,x0,nlines,xe):
         """ Function to return the 3 widths for the target,
@@ -557,30 +561,30 @@ class fitData(object):
             E+aE**2+... ; this should be constrained >=0, not done at
             present."""
         lines=np.array(range(nlines),dtype="double")
-        nt=self.vary_target+1
-        nd=self.vary_detector+1
-        nf=self.vary_filter+1
-        ne=self.vary_energy+1
-        ns=self.vary_epk+self.vary_ewidlow+self.vary_ewidhigh+3
+        nt = self.vary_target+1
+        nd = self.vary_detector+1
+        nf = self.vary_filter+1
+        ne = self.vary_energy+1
+        ns = self.vary_epk+self.vary_ewidlow+self.vary_ewidhigh+3
         if len(x0)<nt+nd+nf+ne+ns:
             print("** calcWidthd called with too few values in x0")
             sys.exit(1)
         # Polynomial expressions: highest order term is first in the array.
         if nt>0:
-            twidth=np.polyval(x0[:nt],lines)
+            twidth = np.polyval(x0[:nt],lines)
         else:
-            twidth=np.polyval(self.defaults[0:1],lines)
+            twidth = np.polyval(self.defaults[0:1],lines)
         #twidth=np.polyval(x0[nt-1:0:-1],lines)
         if nd>0:
-            dwidth=np.polyval(x0[nt:nt+nd],lines)
+            dwidth = np.polyval(x0[nt:nt+nd],lines)
         else:
-            dwidth=np.polyval(self.defaults[1:2],lines)
+            dwidth = np.polyval(self.defaults[1:2],lines)
         #dwidth=np.polyval(x0[nt+nd-1:nt:-1],lines)
         dwidth = np.exp( dwidth ) # force >0 by working in log space
         if nf>0:
-            fwidth=np.polyval(x0[nt+nd:nt+nd+nf],lines)
+            fwidth = np.polyval(x0[nt+nd:nt+nd+nf],lines)
         else:
-            fwidth=np.polyval(self.defaults[2:3],lines)
+            fwidth = np.polyval(self.defaults[2:3],lines)
         if ne>0:
             # This term should be constrained as >=0 for all xe but is not at present.
             # -Ve values will give errors in output stage.
@@ -594,6 +598,9 @@ class fitData(object):
             spectra[indarr] = spectra[indarr]*x0[i0+1:i0+2]
             spectra[~indarr] = spectra[~indarr]*x0[i0+2:i0+3]
             spectra = np.exp(-spectra**2)
+            # mask out lowest 10% of spectra, as in spekCalc
+            masklen = int(len(spectra)*0.1)
+            spectra[0:masklen] = 0.
         else:
             spectra = 0.
         return twidth,dwidth,fwidth,ecoeffs,spectra
@@ -603,6 +610,7 @@ class fitData(object):
         try:
             # from scipy.optimize import minimize
             from scipy.optimize import leastsq
+            from scipy.optimize import least_squares
         except:
             print("** cannot find scipy.minmize - check python has scipy")
             return
@@ -611,11 +619,19 @@ class fitData(object):
         x = xin
         self.nlines = nlines
         self.lineStep = lstep
-        #self.objFun(x)
-        #res = minimize(self.objFun, x, method='Nelder-Mead')
-        res = leastsq(self.objFunSq, x, full_output = True)
-        #for field, val in  leastsq(self.objFunSq, x, full_output = True).items():
-        #    print "field=",field," value=",value
+
+        # use either old or new solver interface from scipy for least squares
+        if self.solver=="old":
+            res = leastsq(self.objFunSq, x, full_output = True)
+        else:
+            if self.bounds:
+                resobj = least_squares(self.objFunSq, x, verbose = 1, bounds=self.boundsValues)
+            else:
+                resobj = least_squares(self.objFunSq, x, verbose = 1, method='lm')
+            infodict = {"nfev":resobj.nfev}
+            cov = [0]
+            res = (resobj.x,cov,infodict,resobj.message,resobj.status)
+
         print("Line 0 atten=",self.atten[0,:])
         expt = np.zeros(self.carCal.samples+1)
         for i in range(self.carCal.samples):
@@ -623,7 +639,10 @@ class fitData(object):
         print("Line 0 expt=",expt)
         # Do final calulation on all lines:
         self.lineStep = 1
-        self.objFunSq(res[0])
+        if self.solver=="old":
+            self.objFunSq(res[0])
+        else:
+            self.objFunSq(resobj.x)
         #
         return res
 
@@ -633,6 +652,10 @@ class fitData(object):
         # Get the 3 widths: target(e.g. W), detector(e.g. CsI), global filter(e.g. Cu)
         # target and detector widths depend on line number, filter is a global value
         # for flexiblity all 3 are dimesioned by nlines
+        #
+        # mask out low en spectral points which may get undue weight if -ve filter widths occur
+        minpt = int(0.1*len(self.carCal.spec.getE()))
+        #
         xe = self.carCal.spec.getE()
         tw,dw,fw,ec,spectra = self.calcWidths(x,self.nlines,xe)
         nsamples = self.carInfo.numSamples - 1 # ignore null sample
@@ -656,9 +679,11 @@ class fitData(object):
             # this is the key integral done as a simple sum. Can ignore width of each value
             # as constant energy steps, so cancels in I/I0
             at_se = se*np.exp(-attSum-tarAtt.getMu()[:len(xe)]*tw[line])*ec*(1-np.exp(-attDet))
+            # drop low energy terms below 10%
+            at_se_t = at_se[minpt:]
             # remove nan's - why are nan's present? exp overflow gives inf, multiply by 0 gives nan
             # in most cases nans are OK to ignore.
-            at_se_finite = at_se[np.logical_not(np.isnan(at_se))]
+            at_se_finite = at_se_t[np.logical_not(np.isnan(at_se_t))]
             i0 = np.sum(at_se_finite)
             #
             for sample in range(nsamples):
@@ -666,12 +691,11 @@ class fitData(object):
                 if self.carInfo.mask[sample]:
                     continue
                 widSam = self.carInfo.sampWidth[sample]
-                #if sample < nsamples-1:
+                #
                 attSam = widSam*self.carInfo.filterAtt[sample].getMu()[:len(xe)]
-                #else:
-                #    attSam = np.ones(len(xe))
-                #attDet = dw[line]*self.carCal.detectorAtten.getMu()[:len(xe)] #csiAtten.getMu()[0:me-1]
-                at_se_sample = at_se * np.exp(-attSam)
+                #
+                # drop low energy terms < 10%
+                at_se_sample = (at_se * np.exp(-attSam))[minpt:]
                 #
                 # remove nan's - see above
                 at_se_sample_finite = at_se_sample[np.logical_not(np.isnan(at_se_sample))]
@@ -747,9 +771,9 @@ class fitData(object):
         # for each line generate npoints values of attenuation from fit data
         #
         if vary_line:
-           nlines = self.nlines
+            nlines = self.nlines
         else:
-           nlines = 1
+            nlines = 1
         #
         polyfit = np.zeros(shape=(nlines,odpoly+2))
         xpolyfit = np.zeros(shape=(nlines,xtekodpoly+2))

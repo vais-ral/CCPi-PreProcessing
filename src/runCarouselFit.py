@@ -23,7 +23,7 @@ from numpy.polynomial.polynomial import polyval
 try:
     import matplotlib
     if 'NOX11' in os.environ:
-       matplotlib.use("Agg")
+        matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 except ImportError:
     sys.exit("Error: cant find matplotlib")
@@ -50,7 +50,7 @@ def loadAll(string):
     if not carouselCal.isValid():
         print("** failed to load calibration data")
         return
-    xSpec = cu.specData(carouselCal.targetMat, carouselCal.voltage, carouselCal.angle)
+    xSpec = carouselCal.spec
     if not xSpec.isValid():
         sys.exit("** failed to load spectrum")
 
@@ -75,7 +75,6 @@ def showSpec(string):
     """ plot spectra of source along with filtered spectra and response spectra.
         Note that these just use input data, not fitted data.
     """
-    global res,fit
     if carouselCal == None:
         print("must load data first")
         return
@@ -292,7 +291,6 @@ def fitAtt(string):
         correction material (corMat/corEn) and then fit a polynomial to this for
         correction purposes.
         """
-    global carouselData, carouselCal, xSpec, debug, vary
     global res,xtab,ytab,fit,polyfit,xpolyfit
     # lstep is the line step; e.g. 1 for every line, 2 for every other line in fitting
     lstep = 1
@@ -301,6 +299,9 @@ def fitAtt(string):
         return
     if not carouselData.valid or not carouselCal.valid:
         print("data not correctly loaded")
+        return
+    if corMat.name=="":
+        print(" ** Must define corrrection material and energy using 'setcormat'")
         return
     defMat = "Cu"
     fit = cu.fitData(carouselData, carouselCal, defMat)
@@ -364,9 +365,13 @@ def fitAtt(string):
     fit.vary_epk = vary[4]
     fit.vary_ewidlow = vary[5]
     fit.vary_ewidhigh = vary[6]
+
+    fit.solver = solverChoice
+
     t0 = timeit.default_timer()
     res,cov,infodict,mesg,ier = fit.dofit(nlines,lstep,x)
     tim = timeit.default_timer()-t0
+
     print("time=",tim)
     print("dofit returned: ")
     print(" best fit values = ",res)
@@ -469,7 +474,6 @@ def fitAtt(string):
 def initGuess(words):
     """ Set initial values to use for the variables of the target absortion width, detector
     width and filter width """
-    global startX
     try:
         startX[0] = float(words[1])
         startX[1] = float(words[2])
@@ -529,7 +533,6 @@ def showCalConf(string):
 
 def setVary(strlst):
     """ define polynomial order of parameters to fit """
-    global vary
     if len(strlst)==1:
         print("Control order of polynomial used for fitting across lines")
         print(" - 3 widths are fitted for target, detector and filter")
@@ -550,8 +553,8 @@ def setVary(strlst):
             print("** failed to read npo")
             npo = 0
         if npo<-1 or npo>3:
-           print("** Order must be range -1 to 3")
-           return
+            print("** Order must be range -1 to 3")
+            return
         if strlst[1]=="target":
             vary[0] = npo
         elif strlst[1]=="detector":
@@ -562,8 +565,8 @@ def setVary(strlst):
             vary[3] = npo
         elif strlst[1]=="spectra":
             if npo>0:
-               print("Error: spectra can only take values -1 and 0 at present")
-               return
+                print("Error: spectra can only take values -1 and 0 at present")
+                return
             vary[4] = npo
             vary[5] = npo
             vary[6] = npo
@@ -580,7 +583,7 @@ def debugToggle(cmd):
 
 
 def helpCar(cmd, string):
-    """ just print(list of commands"""
+    """ just print list of commands"""
     print("Carousel calibration utility")
     print(" ")
     print("cmds:")
@@ -630,7 +633,6 @@ def mask(words):
         is not to be used in the fit. e.g. "mask 7" will mean sample 7 is omitted
         from the fit. "mask off" will restore all samples to the fit.
     """
-    global carouselData, carouselCal
     if carouselData== None:
         print("must load data first")
         return
@@ -656,7 +658,6 @@ def transform(words):
         in first place, Assume we have "I" data and want log(I0/I) values, where I0 is a
         guess provided by the user.
     """
-    global carouselData, carouselCal
     if len(words)<2:
         print("transform command is a test command. Was used to map image intensity")
         print(" data I to log(I0/I), in the case where only I is provided. Now redundant")
@@ -674,9 +675,29 @@ def transform(words):
         z = np.log(I0) - z
         carouselCal.getImage(i)[:,:] = z
 
+def setOptions(words):
+    """ Set options controlling the fit process. Currently just select between the new and old
+        versions of the least squares solver.
+    """
+    global solverChoice
+    if len(words)<2:
+        print("Options:")
+        print(" solver = ",solverChoice)
+    elif words[1]=="solver=new":
+        solverChoice="new"
+    elif words[1]=="solver=old":
+        solverChoice="old"
+    else:
+        print("Option not recognised")
+       
+
 def checkVersions():
+    """ Check version of matplotlib and exit if too old
+    """
     import matplotlib as mpl
     def versiontuple(v):
+        """ split . separated string for comparison
+        """
         return tuple(map(int, (v.split("."))))
     if versiontuple(mpl.__version__) < versiontuple('1.1'):
         print("Matplotlib version too old, need at least 1.1; have ",mpl.__version__)
@@ -703,6 +724,7 @@ cmd_switch = { "load":loadAll,
                "quit":quitCarousel,
                "help":helpCar,
                "transform":transform,
+               "setoptions":setOptions,
                }
 
 # set figures to use for different plots
@@ -715,11 +737,10 @@ FIG_ATTCOMP = "ObservedVsFittedAtten"
 # simple command line loop to allow loading of data and run
 # of fitting code.
 
-global carouselData, carouselCal, startX
 carouselData = None
 carouselCal = None
 # initial guesses unless user changes them
-startX = np.array([0.01,-6.0,0.01,0.,20.,20.,20.])
+startX = np.array([0.01,-6.0,0.01,0.,30.,0.05,0.05])
 checkVersions()
 
 if __name__ == "__main__":
@@ -744,6 +765,8 @@ if __name__ == "__main__":
     # function of line number.
     vary = np.zeros(7,dtype='int')
     vary[3:] = -1
+    # set the default solver type to be "old"
+    solverChoice = "old"
     # set an object for the material to which attenuation is to be corrected to;
     # this is null until the user provides one
     corMat = cu.materialAtt("",1.0)
