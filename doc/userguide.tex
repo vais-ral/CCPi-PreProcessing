@@ -13,9 +13,9 @@
 \maketitle
 
 \begin{abstract}
-This document is a brief user guide to the Python software package CarouselFit which takes image
-data from a number of known samples produced by an X-ray CT machine and fits them to a model of
-the beam hardening process which occurs when a broad spectrum source is used image a sample.
+This document is a brief user guide to the Python software package CarouselFit. This software takes image
+data from a number of known samples, e.g. from an X-ray CT machine, and fits them to a model of
+the beam hardening process which occurs when a broad spectrum source is used to image a sample.
 This model can then be used to generate corrections appropriate for a single material to convert
 the observed attenuation values into the actual attenuation that would be observed for that material
 with monochromatic X-rays.
@@ -33,9 +33,9 @@ and detector.
 Note that due to aging effects of the X-ray source, detector, etc., this function may change over time,
 so ideally the calibration measurements should be made before and after each CT scan.
 In addition the model allows for variation in the form of $R(E)$ with the number of the scan line.
-This can occur due to the way the emitted X-ray spectra is known to depend on the ``take-off'' angle.
+This can occur due to the way the emitted X-ray spectra is known to depend on the ``take-off'' angle\cite{davis}.
 
-Using the fitted response function of the system it is then possible to determin a correction curve
+Using the fitted response function of the system it is then possible to determine a correction curve
 that will map from the observed attenuation to the true attenuation that would be seen at a given
 monochromatic X-ray energy.
 This correction curve is calculated assuming the sample is composed of a single material type
@@ -62,6 +62,7 @@ beams and the material attenuation.
 As well as a Python environment the software depends on a number of additional packages being available.
 An easy way to access most of the required packages is to download the Anaconda Python environment which is
 available for Linux, MacOS and Windows systems from \url{https://www.continuum.io/downloads}.
+The software has been developed using Python version 2.7.
 It is recommended that the user installs this before installing the CarouselFit software.
 Alternatively the user may install the required packages in their local Python installation, if they are not
 already available.
@@ -95,8 +96,8 @@ On Linux and MacOS this could be done from a command prompt, assuming that a sui
   quit
 \end{verbatim}
 
-This set of commands should run without producing any error messages (such as failure to import some modules).
-If missing modules are reported it will be necessary to add these and run the test script again.
+This set of commands should run without generating any error messages, such as failure to import modules.
+If missing modules are reported it will be necessary to add these to the Python system and run the test script again.
 Check the documentation for your Python system to see how to add modules.
 
 On Windows systems Anaconda python can be accessed from the Start Menu after it has been installed.
