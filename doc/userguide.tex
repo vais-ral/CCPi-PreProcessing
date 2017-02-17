@@ -261,18 +261,30 @@ number of lines of data to fit must be given. This maybe followed by a ``step'',
 This can be useful when using many lines as fitting all of them can be very slow.
 The time to fit also increases with the number of variables that have been selected with the ``vary'' command.
 
-\item{\bf vary \it{[target|detector|filter|energy npoly]}} On its own this command lists the order of polynomial used in fitting the line wise
+\item{\bf vary \it{[target|detector|filter|energy|spectra npoly]}} On its own this command lists the order of polynomial used in fitting the line wise
 dependence of each of the three main parameters, target width, detector width and filter width.
-Thus setting 0 for each of these would mean no variation across lines, while setting each as 1 gives a linear variation of each in line number.
-The fit time increases significantly with the order used.
-Extra terms also can be added to the normally linear dependence of the detector response to the photon energy;
-however this polynomial is not constrained to be positive and the fit may fail.
-Hence the vary value defaults to -1 which indicates no energy dependence and setting a value greater than 0 is not recommended.
-Note that there is no line dependence in the energy, even for values above 0; this just allow higher order energy terms.
-Another experimental option that has now been added is called ``spectra'', which also defaults to -1, i.e. not used.
+The setting "-1" indicates that the value should be held constant, as set by the initguess command.
+Using "0" indicates the value will be fitted, but is independent of the line number.
+Setting to "1" gives a fit allowing a linear variation of the value with line number.
+For example:
+\begin{verbatim}
+    vary filter 0
+    vary detector -1
+    vary target 1
+\end{verbatim}
+will allow a single fitted value for the filter width, the detector width held constant, and
+the target (filter) width to vary linearly with the line number. 
+The fit time increases significantly with the order used and values greater than 1 are not recommended.
+An experimental option is to allow extra terms to be added to the normally linear dependence of the detector response to the photon energy,
+e.g. $E+\alpha E^2$.
+Note that energy dependence is NOT related to line number in this case.
+However this polynomial is not constrained to be positive and the fit may fail.
+Keeping energy variation off (-1) is recommended.
+Another option that has now been added is called ``spectra'', which also defaults to -1, i.e. not used.
 Setting spectra to 0 causes the calculated spectra to be replaced with a simple non-symmetric Gaussian form with 3 parameters,
 centre, left width and right width.
-This feature is only for advanced users and may not give good results.
+This feature can be used when pre-computed spectra from SpekCalc are not available.
+The open source version of the software will not include SpekCalc data.
 
 \item{\bf initguess \it{$s_1$ $s_2$ $s_3$}} Set the initial guess to be used by fitatt.
 $s_1$ is the width of the target filter (usually tungsten), $s_2$ is the log width of the detector (usually CsI) and $s-3$ is the width of the
