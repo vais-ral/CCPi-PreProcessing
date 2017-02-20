@@ -78,6 +78,10 @@ def showSpec(string):
     if carouselCal == None:
         print("must load data first")
         return
+    # if no SpeKCalc data available, need to allow fitted spectra
+    if carouselCal.spec.getS() is None and vary[4]==-1:
+            print("** No spectrum is defined. Must use e.g. 'vary spectra 0'")
+            return
     if xSpec.valid:
         plt.figure(FIG_SPEC)
         line = 0
@@ -91,7 +95,7 @@ def showSpec(string):
                 print("line must be >=0 and < ",fit.nlines)
                 return
         if carouselCal.filterCount>0:
-            n = len(xSpec.getS())
+            n = len(xSpec.getE())
             try:
                 # this is PATCHED UP to get the Gaussian spectra if this option
                 # has been selected and to push this into the calculation pipeline
@@ -134,7 +138,8 @@ def showSpec(string):
             #
             dE = xSpec.getE()[1]-xSpec.getE()[0]
             nmean = int(meanE/dE)
-            print(" atten ratio at mean energy = ",xSpec.getS()[nmean]/(attSpec[nmean]*norma*norm))
+            # This expression is not valid if using fitted spectra
+            #print(" atten ratio at mean energy = ",xSpec.getS()[nmean]/(attSpec[nmean]*norma*norm))
             #
             expo = -carouselCal.targetAtten.getMu()[0:n]*tw[line]
             expo[expo>600] = 600
@@ -303,6 +308,10 @@ def fitAtt(string):
     if corMat.name=="":
         print(" ** Must define corrrection material and energy using 'setcormat'")
         return
+    # if no SpeKCalc data available, need to allow fitted spectra
+    if carouselCal.spec.getS() is None and vary[4]==-1:
+            print("** No spectrum is defined. Must use e.g. 'vary spectra 0'")
+            return
     defMat = "Cu"
     fit = cu.fitData(carouselData, carouselCal, defMat)
     fit.verbose = debug
