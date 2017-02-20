@@ -18,7 +18,8 @@ vary filter 0
 fitatt 20
 vary energy 0
 fitatt 20
-vary target 2
-vary filter 2
-fitatt 799 10
+vary energy -1
+vary target 1
+vary filter 1
+fitatt 800 10
 showspec
