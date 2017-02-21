@@ -607,13 +607,18 @@ class fitData(object):
 
     def dofit(self,nlines,lstep,xin):
         """ perform fit """
+        got=0
         try:
             # from scipy.optimize import minimize
             from scipy.optimize import leastsq
+            got=1
             from scipy.optimize import least_squares
         except:
-            print("** cannot find scipy.minmize - check python has scipy")
-            return
+            # if found old lib try and continue
+            if got==0:
+                print("** cannot find scipy leastsq or least_squares - check python has scipy")
+                return
+
         if self.verbose:
             pdb.set_trace()
         x = xin
