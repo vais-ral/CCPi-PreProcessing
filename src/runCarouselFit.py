@@ -4,6 +4,7 @@
 
     This is the command line interface which is executed by:
        python ../src/runCarouselFit.py
+
     within the "test" directory. The location is important since the
     code assumes that spectral data is available in the "spectra"
     subdirectory which is currently in test.
@@ -668,9 +669,9 @@ def mask(words):
             print("Error: bad value in list")
 
 def transform(words):
-    """ TEST code to try and fix up RCaH data; this is only a fudge; must get right data
-        in first place, Assume we have "I" data and want log(I0/I) values, where I0 is a
-        guess provided by the user.
+    """ TEST code to try and fix up some data; should get right data
+        in first place, Assume we have "I" data and want log(I0/I) values, where I0 is
+        provided by the user.
     """
     if len(words)<2:
         print("transform command is a test command. Was used to map image intensity")

@@ -1,10 +1,11 @@
 """ Utilities for beam hardening correction method. Classes are provided
 to load the various data types that are needed by the algorithm.
 classes:
-    specData: object to load and store X-ray spectrum for specified case
-    carousel: object to load and store description of test carousel
-    carouselCalibrationData: object to load and store the calibration data
-    fitData: object with methods and data related to the fitting process
+
+    specData  object to load and store X-ray spectrum for specified case
+    carousel  object to load and store description of test carousel
+    carouselCalibrationData  object to load and store the calibration data
+    fitData  object with methods and data related to the fitting process
 
 """
 # just for reading 16 bit images and conversion to log(I0/I)
@@ -40,7 +41,7 @@ class specData(object):
     the voltage in this fitting procedure.
 
     Attributes
-    ----------
+   
     target : string
         X-ray tube target material, chemical symbol e.g. W
     voltage : float
@@ -49,7 +50,7 @@ class specData(object):
         take off angle in degrees for the X-ray beam. This is kept constant
 
     Methods
-    -------
+    
     getE()
         Get array of energies over which the spectrum is defined (KeV)
     getS()
