@@ -18,7 +18,7 @@ data from a number of known samples, e.g. from an X-ray CT machine, and fits the
 the beam hardening process which occurs when a broad spectrum source is used to image a sample.
 This model can then be used to generate corrections appropriate for a single material to convert
 the observed attenuation values into the actual attenuation that would be observed for that material
-with monochromatic X-rays.
+with monochromatic X-rays at a given energy.
 This software is based on the IDL package and ideas described in \cite{davis}.
 \end{abstract}
 
@@ -28,12 +28,16 @@ Beam hardening is well known problem that is described in many works, see \cite{
 This software takes as input a number of images of well characterised samples and uses these
 to fit a simple model of the expected beam hardening (BH) to the observed data.
 The result is an estimate of the ``response function'', $R(E)$, which gives the expected output signal
-from the detector as a function of X-ray energy for the selected combination of X-ray source, filters
+from the detector as a function of X-ray energy for the selected combination of X-ray source, voltage, filters
 and detector.
 Note that due to aging effects of the X-ray source, detector, etc., this function may change over time,
 so ideally the calibration measurements should be made before and after each CT scan.
 In addition the model allows for variation in the form of $R(E)$ with the number of the scan line.
 This can occur due to the way the emitted X-ray spectra is known to depend on the ``take-off'' angle\cite{davis}.
+Use of pre-filtering the X-ray reduces both beam hardening effects and the variation of these with take-off
+angle. Low energy X-rays show the greatest variation with take-off angle.
+Davis recommends using both pre-filtering as well as the software correction described in this guide
+to best minimise beam hardening artifacts.
 
 Using the fitted response function of the system it is then possible to determine a correction curve
 that will map from the observed attenuation to the true attenuation that would be seen at a given
@@ -49,10 +53,12 @@ In section 3 we describe how to set up the necessary files that give
 information on the number and type of test images that are used for calibration and the
 image formats.
 Section 4 details how to the run the fitting and post-processing image modules of the software.
-The first of these fits the model to the data while the second applies the correction either
-directly to the CT image data or generates a look-up table to map observed attenuation values to
-mono-chromatic attenuation.
-Section 5 shows two examples of the use of the software.
+The first of these fits the model to the data while the second applies the correction
+directly to the CT image data.
+An alternative to processing all the images is to generates a look-up table or a 4th order polynomial
+to map observed attenuation values to mono-chromatic attenuation.
+Such data can be used as input to some reconstuction software, such the standard XTek filtered back
+projection package and the CCPi CGLS iterative code.
 
 \section{Downloading and running the software}
 
@@ -76,7 +82,7 @@ The main Python modules that may need to be added to a local installation are:
 
 The CarouselFit software can be checked out to a suitable directory using the command:
 \begin{verbatim}
-    svn co https://ccpforge.cse.rl.ac.uk/svn/tomo_bhc/trunk carouselFit
+    svn co https://ccpforge.cse.rl.ac.uk/svn/tomo_bhc/branches/release01 carouselFit
 \end{verbatim}
 This will create a set of three directories under \texttt{carouselFit}:
 \begin{itemize}
@@ -160,7 +166,8 @@ The above file uses the simple format:
 number of names must be the same as the previous number, with the final one named "NOTHING".
 In this case the samples are all pure metals and the chemical symbol has been used as the name.
 However any name be used as long as a corresponding file with the extension \texttt{.txt} exists
-in the directory \texttt{test/xcom}. This file gives the energy dependent $\mu(E)$ for this sample.
+in the directory \texttt{test/xcom}. This file gives the energy dependent $\mu(E)$ for this sample
+in steps of 0.5KeV from 0 to the maximum expected energy.
 \item{line4:} a set of comma separated values giving the density (in g/cm3) of each sample. A dummy
 value of 1 is used for the final material.
 \item{line5:} a set of comma separated values giving the thickness of each sample in cm. A dummy value of
@@ -185,7 +192,7 @@ An example is shown below:
 \begin{verbatim}
 # data for one QMUL calibration run
 80              # voltage
-22              # angle
+22              # take of angle [not used by default]
 W               # target material
 19.25           # target density
 600             # image res rows
@@ -212,20 +219,20 @@ The path to the file containing the sample images must be included in this file.
 All the images must currently be in a single file.
 The format used above, \texttt{float32}, assumes a binary format with 9 separate images of $600 \times 800$ 32bit floating
 point values.
-Each value is $log ( I_0 / I )$ for that pixel.
+Each value is $log ( I_0 / I )$ for that pixel with flat/dark field corrections.
 
 Another supported format is \texttt{uint16}. In this case the sample images values are unsigned 16 bit values of the $I$ value.
 Again these are all packed in order in a single file. The first image of the file is the (shading corrected) flat field image.
 The $I_0$ value is taken as the average of this initial image.
  
-Usually a set of filters are used to limit the limit the energy range of the X-ray beam. In the case of the QMUL data they
+Usually a set of filters are used to limit the energy range of the X-ray beam. In the case of the QMUL data they
 normally employ two filters with 0.12cm of Al and 0.1cm of Cu, as shown in the above file.
 As the fitting process includes varying the exact Cu filter width it is recommended that a zero width Cu filter element is included
 even if no Cu was used in the actual imaging.
 
 The definition of the detector material is important and tests to date have been made with CsI. However other materials may be used
 if their attenuation profile is included in the \texttt{text/xcom} directory.
-Since the width of the detector is used as a fitting parameter it is not necessary to specify an accurate starting value, though this
+Since the width of the detector maybe used as a fitting parameter it is not essential to specify an accurate value, though this
 will be used in the command \texttt{showspec}, if it is run before a fit has been performed.
 
 \section{The command line interface}
@@ -233,9 +240,9 @@ will be used in the command \texttt{showspec}, if it is run before a fit has bee
 \subsection{Command list}
 
 When the Python software is started from Python or a similar environment, a simple command prompt is issued.
-Typing \texttt{help} will give a simple list of the available commands, though without much detail of the options.
+Typing \texttt{help} will give a list of the available commands.
 
-The available commands are:
+The commands are:
 \begin{itemize}
 \item{\bf read \it{filename}} This command opens the given file and reads commands from it until end of file.
 Control is then returned to the command line. Do not include blank lines in the command script.
@@ -243,6 +250,7 @@ Control is then returned to the command line. Do not include blank lines in the 
 \item{\bf load \it{file.def} \it{file.data}} This reads the definition file for the carousel and the data
 relating to the actual calibration images. These two files must exist and are described in the previous section.
 they are normally located in the \texttt{test/carouselData} directory.
+This is usually the first command to issue since most others need this data to be present.
 
 \item{\bf quit} Exit the program.
 
@@ -258,11 +266,16 @@ It can only be used after data has been loaded.
 
 \item{\bf fitatt nlines \it{[linestep]}} This command attempts to fit the model to the selected samples (see mask command). The
 number of lines of data to fit must be given. This maybe followed by a ``step'', e.g. 10 to use every 10th line.
-This can be useful when using many lines as fitting all of them can be very slow.
+This can be useful when using many lines as fitting all of them can be very slow and the
+fit may not be improved using more data.
 The time to fit also increases with the number of variables that have been selected with the ``vary'' command.
+Fitting to a few lines can be a good way to see if the model fits and give a better initial guess for a fit
+to a larger subset of the data.
+
 
 \item{\bf vary \it{[target|detector|filter|energy|spectra npoly]}} On its own this command lists the order of polynomial used in fitting the line wise
-dependence of each of the three main parameters, target width, detector width and filter width.
+dependence of each of the three main parameters, \textit{target width},
+\textit{detector width} and \textit{filter width}.
 The setting "-1" indicates that the value should be held constant, as set by the initguess command.
 Using "0" indicates the value will be fitted, but is independent of the line number.
 Setting to "1" gives a fit allowing a linear variation of the value with line number.
@@ -280,17 +293,20 @@ e.g. $E+\alpha E^2$.
 Note that energy dependence is NOT related to line number in this case.
 However this polynomial is not constrained to be positive and the fit may fail.
 Keeping energy variation off (-1) is recommended.
-Another option that has now been added is called ``spectra'', which also defaults to -1, i.e. not used.
-Setting spectra to 0 causes the calculated spectra to be replaced with a simple non-symmetric Gaussian form with 3 parameters,
-centre, left width and right width.
-This feature can be used when pre-computed spectra from SpekCalc are not available.
-The open source version of the software will not include SpekCalc data.
+The final option called ``spectra'', which defaults to 0, i.e. on, when no pre-defined
+spectra are present, which is the case for the open source release of the package.
+Setting spectra to 0 causes the calculated spectra to be modelled as a simple non-symmetric Gaussian form with 3 parameters,
+\textit{peak}, \textit{inverse left width} and \textit{inverse right width}.
+If pre-computed spectra are available, e.g. from spekCalc, these can be used in preference to the
+Gaussian by setting vary spectra -1.
 
-\item{\bf initguess \it{$s_1$ $s_2$ $s_3$}} Set the initial guess to be used by fitatt.
-$s_1$ is the width of the target filter (usually tungsten), $s_2$ is the log width of the detector (usually CsI) and $s-3$ is the width of the
+\item{\bf initguess \it{[$s_1$ $s_2$ $s_3$}[$s_4$ $s_5$ $s_6$ $s_7$]]} Set the initial guess to be used by fitatt.
+$s_1$ is the width of the target filter (usually tungsten), $s_2$ is the log width of the detector (usually CsI) and $s_3$ is the width of the
 fitted filter (usually copper). Commonly used values for the initial guess are 0.01 -6.0 0.01.
 If using the experimental feature ``vary spectra 0'' than 4 additional values can be given which are the initial value of the
-energy term (should be zero) plus the Gaussian centre and widths, e.g. 0.01 -6.0 0.01 0.0 40.0 1.0 1.0.
+energy term (should be zero) plus the Gaussian centre and widths, e.g. 0.01 -6.0 0.01 0.0 40.0 0.05 0.05.
+When loading data the Gaussian peak is set to half the maximum X-ray energy.
+Using this command with no parameters gives the current settings on the values.
 
 \item{\bf mask \it{[n1 n2..]}} Without arguments this shows the set of masks that control if a given sample will be used in the next fit operation.
 By default all values are true which means that sample will be used in the fit. Samples are labeled from 1 to $n$ and to mask the $m$ sample
@@ -300,7 +316,7 @@ that number should be given as an argument to the mask command. A negative value
 curve should be determined. For example \texttt{setcormat Al 40} sets the correction curve to be calculated for Aluminium at 40KeV.
 At present if the correction material or energy are altered it is necessary to rerun the fit command.
 
-\item{\bf transform} This is an experimental command which may be removed in future.
+\item{\bf transform} This is an experimental command which will be removed in future.
 
 \item{\bf showspec \it{[line]}} - plot three spectra, the input X-ray spectrum, the filtered spectrum and the response spectrum.
 Should only be used after a fit has been made. This command needs improving since the ``filtered'' plot is not meaningful.
@@ -320,6 +336,10 @@ exceed the true sample width. For the RCaH data, where the image does cover the 
 
 \item{\bf setfilter \it[material width]} - without arguments lists the filters defined. Can also be used
 to change the width of existing filters, though not add new ones. Used for debugging.
+
+\item{\bf setoptions \it[solver=old$\vert$new]} - set option. Currently only allows switching
+between old and new least square solvers in scipy. The old version is more widely available
+and is the default.
 
 \end{itemize}
 
@@ -347,28 +367,38 @@ plot the 2D images and 1D cuts along line=400.
     vary detector 0
     vary filter 1
 
-    initguess .01 -6 .0
-    fitatt 799 2
+    initguess .01 -6 .01
+    fitatt 800 10
 
     showspec
     showcor
 \end{verbatim}
 These commands then set the material and energy to which we wish to correct the data via the \texttt{setcormat}
 command, and then alter the default orders of the fit variables.
-The \texttt{fitatt} command fits the given initial guess using the lines of the image data, 0-799, but only every 2nd line.
+The \texttt{fitatt} command fits the given initial guess using the lines of the image data, 800, but only every
+10th line.
 This fit may take 60 seconds. Finally the fitted spectrum and correction curves are plotted.
 
 The correction curves are stored in the same format as used in the earlier IDL code as separate 8th order polynomial
 fits to the correction data in a file called polyfit.npz.
 These curves are the ones shown by the \texttt{showcor} command above.
 To actually apply the correction to image data requires the use of another Python program, \texttt{applyTrans.py}.
+In addition to the above 8th order polynomials, 4th order fits are also written to the
+output file \textit{param.log}.
+The 4th order polynomial values are written at the end of the file, one set per line if the solution includes
+variation with line number.
+These values can be used in the xtekct file for the parameters X0 to X4, X0 being the rightmost value in
+\textit{param.log}.
+If the variation of the correction with the line number is significant it would be better to correct
+each project individually as described in the next sectionn.
 
 \subsection{applyTrans.py}
 
 The Python script applyTrans.py can be used to update image files using the correction curves calculated by
 the above fitting process.
 It can also calculate a file of type \texttt{.bht} which can be used by XtekCT machines to correct the image
-data used in CT analysis. In this case only one correction curve is applied to all the data.
+data used in CT analysis. In latter case only one correction curve is applied to all the data, in the same
+way that using the using the 4th order polynomial fit does.
 
 The syntax of the command can be seen using the \texttt{-h} option, which gives:
 \begin{verbatim}
