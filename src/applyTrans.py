@@ -1,8 +1,22 @@
+# Copyright [2017] [Ronald Fowler]
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
-# Program to read in the polynomial fit(s) from carousel analysis and apply them to
-# a set of data. The Data can be float values of I0/I or int16 values of I0/I with I0 defined
-# in some way. e.g. single I0 value or matrix of I0 values
-# Corrected values will be written in same format as input.
+ Program to read in the polynomial fit(s) from carousel analysis and apply them to
+ a set of data. The Data can be float values of I0/I or int16 values of I0/I with I0 defined
+ in some way. e.g. single I0 value or matrix of I0 values
+ Corrected values will be written in same format as input.
 """
 from __future__ import print_function
 import os.path
@@ -14,8 +28,8 @@ import pdb
 
 def readPolyCoeff(fileParam):
     """
-    # read the "param.log" type data of polynomial coeffs
-    # retunrs numpy array polyC
+     read the "param.log" type data of polynomial coeffs
+     retunrs numpy array polyC
     """
     if not os.path.isfile(fileParam):
         return 0
@@ -60,9 +74,9 @@ def checkArgs(argstr):
 
 def processRaw(infile,outfile,polyC,rows,lines):
     """
-    # Read a binary raw file containing float32 data of the ln(I0/I) image data
-    # and apply the correction given by the polynomial(s) in polyC.
-    # Results output written to outfile in same raw format.
+     Read a binary raw file containing float32 data of the ln(I0/I) image data
+     and apply the correction given by the polynomial(s) in polyC.
+     Results output written to outfile in same raw format.
     """
     infi = open(infile,"rb")
     outfi = open(outfile,"wb")
@@ -96,13 +110,13 @@ def processRaw(infile,outfile,polyC,rows,lines):
 
 def processTif(infile,outpre,polyC,rows,lines,whiteLevel,debug):
     """
-    # Read a tif file containing uint16 data of "I" image data
-    # and apply the correction given by the polynomial(s) in polyC.
-    # White level "whiteLevel" must be provided.
-    # Have to convert to float format for correction and retur to uint16
-    # afterwards. A correction table in the reconstruction process would
-    # be more efficient.
-    # Results output written to outfile in same tif format.
+     Read a tif file containing uint16 data of "I" image data
+     and apply the correction given by the polynomial(s) in polyC.
+     White level "whiteLevel" must be provided.
+     Have to convert to float format for correction and retur to uint16
+     afterwards. A correction table in the reconstruction process would
+     be more efficient.
+     Results output written to outfile in same tif format.
     """
     try:
         #from PIL import Image
@@ -173,53 +187,61 @@ def genbht(bhtFile,whiteLevel,polyC):
     print("bht data written to "+bhtFile)
 
 #
+def trans():
+    """
+    Main fuction of applyTrans to read command options and load data files, then
+    write results 
+    """
+    print("Apply beam hardening corrections to image file OR generate bht file")
+    rows,lines,polyf,whiteLevel,bhtFile,debug,args = checkArgs(sys.argv[1:])
+    
+    if debug:
+        pdb.set_trace()
+    
+    print("\nReading correction polynomials:")
+    polyCoeffs = readPolyCoeff(polyf)
+    if type(polyCoeffs)==type(0):
+        print("failed to read polyfit file")
+        return
+    # polynomial is usually fitted as 8th order, but as the leading term is forced to zero, it is
+    # actually 9th order.
+    print("Number of polynomials: ",str(len(polyCoeffs[:,0]))," order: ",str(len(polyCoeffs[0,:])-1) )
+    nargs = len(args)
+    
+    if bhtFile != "":
+        print("generating .bht file")
+        if nargs>0:
+            print("Ignoring file arguments")
+        genbht(bhtFile,whiteLevel,polyCoeffs)
+        return
+    
+    print("Number of input files:", nargs, " rows=",rows," lines=",lines)
+    if nargs==0:
+        print("No files to process")
+        return
+    if not os.path.isfile(args[0]):
+        print("File not found: "+args[0])
+        return
+    print("First file:", args[0])
+    filename,fileext = os.path.splitext(args[0])
+    print("Extension = ",fileext)
+    if fileext==".raw" and nargs==1:
+        print("Processing raw file "+args[0])
+        if whiteLevel>0:
+            print("* Ignoring whiteLevel for .raw file")
+        outfile = "bhc_"+args[0]
+        processRaw(args[0],outfile,polyCoeffs,rows,lines)
+    elif fileext==".tif":
+        print("Processing .tif file(s)")
+        #if whiteLevel<1:
+        #    print("* Must set whiteLevel to process tif files")
+        if whiteLevel>65536:
+            print("WhiteLevel too high for 16 bit data")
+            reurn
+        for tfile in args:
+            processTif(tfile,"bhc_",polyCoeffs,rows,lines,whiteLevel,debug)
+    else:
+        print("extension not recognised")
 
-print("Apply beam hardening corrections to image file OR generate bht file")
-rows,lines,polyf,whiteLevel,bhtFile,debug,args = checkArgs(sys.argv[1:])
-
-if debug:
-    pdb.set_trace()
-
-print("\nReading correction polynomials:")
-polyCoeffs = readPolyCoeff(polyf)
-if type(polyCoeffs)==type(0):
-    print("failed to read polyfit file")
-    sys.exit()
-# polynomial is usually fitted as 8th order, but as the leading term is forced to zero, it is
-# actually 9th order.
-print("Number of polynomials: ",str(len(polyCoeffs[:,0]))," order: ",str(len(polyCoeffs[0,:])-1) )
-nargs = len(args)
-
-if bhtFile != "":
-    print("generating .bht file")
-    if nargs>0:
-        print("Ignoring file arguments")
-    genbht(bhtFile,whiteLevel,polyCoeffs)
-    sys.exit(0)
-
-print("Number of input files:", nargs, " rows=",rows," lines=",lines)
-if nargs==0:
-    sys.exit("No files to process")
-if not os.path.isfile(args[0]):
-    sys.exit("File not found: "+args[0])
-print("First file:", args[0])
-filename,fileext = os.path.splitext(args[0])
-print("Extension = ",fileext)
-if fileext==".raw" and nargs==1:
-    print("Processing raw file "+args[0])
-    if whiteLevel>0:
-        print("* Ignoring whiteLevel for .raw file")
-    outfile = "bhc_"+args[0]
-    processRaw(args[0],outfile,polyCoeffs,rows,lines)
-elif fileext==".tif":
-    print("Processing .tif file(s)")
-    #if whiteLevel<1:
-    #    print("* Must set whiteLevel to process tif files")
-    #    sys.exit(1)
-    if whiteLevel>65536:
-        print("WhiteLevel too high for 16 bit data")
-        sys.exit(1)
-    for tfile in args:
-        processTif(tfile,"bhc_",polyCoeffs,rows,lines,whiteLevel,debug)
-else:
-    print("extension not recognised")
+if  __name__ == '__main__':
+    trans()
