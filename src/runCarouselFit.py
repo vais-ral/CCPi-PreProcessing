@@ -66,6 +66,11 @@ def loadAll(string):
         print("** failed to load calibration data")
         return
     xSpec = carouselCal.spec
+    # set guess for spectra peak to half the maximum X-ray voltage
+    startX[4] = carouselCal.voltage/2.
+    if carouselCal.spec.getS() is None and vary[4]==-1:
+        print("Using 'vary spectra 0' as pre-computed spectra not found")
+        vary[4:] = 0
     if not xSpec.isValid():
         sys.exit("** failed to load spectrum")
 
