@@ -3,9 +3,9 @@ runCarouselFit.py: fitting for carousel calibration data
 ========================================================
 
 
-1. Set up python environment to include scipy, e.g.
+1. Set up python environment to include required modules scipy, matplotlib, e.g.
 
-on scarf RAL cluster must first do:
+on scarf RAL cluster:
 
   module load python278/matplotlib/1.4.2
   module load python278/scipy/0.14.0
@@ -14,7 +14,7 @@ On vishighmem, development machine:
 
   module load python/anaconda
 
-On Windows should install Anaconda python distribution (or similar, e.g. enthought).
+On Windows install Anaconda python distribution (or similar, e.g. enthought).
 
 2. Running the test case:
 
