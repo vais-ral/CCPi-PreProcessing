@@ -12,13 +12,13 @@ setcormat olivine 44.
 vary target 0
 vary detector 0
 vary filter 0
-vary energy 0
+vary energy -1
 # fitatt 20 .01 -6 .01
 mask 1 9
 fitatt 20
 fitatt 1999 100
-vary target 2
-vary filter 2
+vary target 1
+vary filter 1
 setwidth 500
-fitatt 1999 20
+fitatt 1999 50
 showspec
