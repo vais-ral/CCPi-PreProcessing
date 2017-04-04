@@ -384,7 +384,13 @@ def fitAtt(string):
     fit.solver = solverChoice
 
     t0 = timeit.default_timer()
-    res,cov,infodict,mesg,ier = fit.dofit(nlines,lstep,x)
+
+    try:
+        res,cov,infodict,mesg,ier = fit.dofit(nlines,lstep,x)
+    except Exception as experr:
+        print("** Fit failed due to exception: ",experr)
+        return
+    
     tim = timeit.default_timer()-t0
 
     print("time=",tim)
