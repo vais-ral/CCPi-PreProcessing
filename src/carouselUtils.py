@@ -187,6 +187,7 @@ class carousel(object):
         self.materialTypes = None
         self.mask = None
         self.valid = False
+        self.filterAtt = {}
         self.__readFile(defFile)
 
     def __readFile(self, defFile):
@@ -261,6 +262,7 @@ class carouselCalibrationData(object):
         self.image = {}
         self.spec = {}
         self.filterCount = 0
+        self.__centre = None
 
         self.__readCalFile(calFile)
         if self.valid:
@@ -473,8 +475,8 @@ class carouselCalibrationData(object):
             for li in range(self.lines):
                 cen = self.getCentrePos(li, isam)
                 if markWidth>0:
-                    z[li, cen-markWidth] = 0
-                    z[li, cen+markWidth] = 0
+                    z[li, int(round(cen-markWidth))] = 0
+                    z[li, int(round(cen+markWidth))] = 0
             maskedimage = np.ma.array(z, mask = np.isnan(z))
             zmax = np.max(maskedimage)
             zzmax = max(zmax, zzmax)
@@ -514,11 +516,15 @@ class fitData(object):
         # set default fitting parameters; values are order of polynomials
         # in line number. Hence "0" is a constant, not dependent on line number
         # default is for 3rd polys for detector and target width, with global
-        # width for Cu filters.
-        self.vary_target=1  #3
-        self.vary_detector=1  #3
-        self.vary_filter=0
-        self.vary_energy=-1
+        # width for Cu filters. Also Gaussian for spectra, if no pre-defined values.
+        #
+        self.vary_target = 1
+        self.vary_detector = 1
+        self.vary_filter = 0
+        self.vary_energy = -1
+        self.vary_epk = -1
+        self.vary_ewidlow = -1
+        self.vary_ewidhigh = -1
         # make space for default values to use if vary==-1
         self.defaults = np.zeros(4)
         #
@@ -530,12 +536,9 @@ class fitData(object):
         self.varFilter = -1
         # check if we have filter of material defMat
         for i in carCal.filterMaterial:
-            #print carCal.filterMaterial[i]
             if defMat == carCal.filterMaterial[i]:
                 self.varFilter = i
                 self.defFilterMat = defMat
-                # this value not used
-                #self.defFilter = 'global'
         # if defMat not found, use first material in list, if any
         if self.varFilter==-1:
             print("default filter: ", defMat," not found")
@@ -545,12 +548,14 @@ class fitData(object):
                 print("using material = ",self.defFilterMat," for fitting")
             else:
                 print("no filter material present, hence cannot fit this")
-            # self.isValid = False
         self.atten = np.zeros([self.carCal.lines,self.carInfo.getSamples()])
         self.objFnCalls = 0
         self.nlines = 0
+        self.lineStep = 1
         self.linestep = 1
         self.bounds = False
+        self.boundsValues = {}
+        self.solver = "old"
 
     def calcWidths(self,x0,nlines,xe):
         """ Function to return the 3 widths for the target,
