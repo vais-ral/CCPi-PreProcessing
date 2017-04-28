@@ -1,0 +1,19 @@
+# data for one calibration run
+70 		# voltage was 45
+22		# guess at take off angle
+W		# target material
+19.25           # target density
+2000		# image res rows
+2000		# image res lines
+carouselData/Stack16bit.raw		# image file
+uint16_65535		# data type in image file, with white level 65535
+2		# number of filters
+Al              # filter material
+0.1             # filter width
+2.698           # filter density
+Cu              # filter material
+0.001           # filter width - virtual filter for fitting purposes
+8.92            # filter density
+CsI		# detector material
+0.01		# starting value for detector thickness
+4.51		# detector density
