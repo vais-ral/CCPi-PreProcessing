@@ -340,7 +340,8 @@ class carouselCalibrationData(object):
         """ read the image data based on specificed format """
         if os.path.isfile(imageFile):
             if self.imageFileFormat == "uint16":
-                # if raw int16 data, assume first image is flat field and normalise rst of image by this and do log
+                # if raw uint16 data, assume first image is flat field and normalise
+                # rest of images by this and take log(I0/I)
                 nimages = self.samples+1
                 with open(imageFile, 'rb') as fl:
                     tmpimage = np.fromfile(fl, dtype = self.imageFileFormat,
@@ -363,6 +364,26 @@ class carouselCalibrationData(object):
                         imt[imt==0] = np.mean(imt)
                         logging.warning('zero data replaced in image %d',i+1)
                     self.image[i,:,:] = np.log( whiteLev / tmpimage[i+1,:,:] )
+
+            elif self.imageFileFormat == "uint16_65535":
+                # if raw uint16_65535 data, whitelevel set as 65535
+                # Question: Should we allow other values of whitelevel?
+                nimages = self.samples
+                with open(imageFile, 'rb') as fl:
+                    tmpimage = np.fromfile(fl, dtype = "uint16",
+                                           count = self.rows*self.lines*nimages)
+                    tmpimage = tmpimage.reshape(nimages, self.lines, self.rows)
+                self.image = np.zeros(self.rows*self.lines*self.samples,
+                                      dtype=float).reshape(self.samples, self.lines, self.rows)
+                whiteLev = 65535
+                self.whiteLevel = whiteLev
+                for i in range(nimages):
+                    # catch zero data:
+                    if np.min(tmpimage[i,:,:])==0:
+                        imt = tmpimage[i,:,:]
+                        imt[imt==0] = np.mean(imt) + 1 # in case mean < 1.0 (imt is uint16)
+                        logging.warning('zero data replaced in image %d',i)
+                    self.image[i,:,:] = np.log( whiteLev / tmpimage[i,:,:] )
 
             elif self.imageFileFormat == "float32":
                 # assume float data already transformed by I0 and log
