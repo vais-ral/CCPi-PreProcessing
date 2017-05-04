@@ -392,15 +392,25 @@ class carouselCalibrationData(object):
 
     def printImageStats(self, carInf):
         """ print out some data for each frame in the set of images"""
+        max1 = int(self.voltage*2) # number of 0.5 KeV steps
+        min10 = int(max1/10)
         for i in range(self.samples):
             nancount = np.count_nonzero(np.isnan(self.image[i,:,:]))
             if nancount>0:
                 print("*** img ", i, " contains: ", nancount, " NaNs (", nancount*100./(self.rows*self.lines), "%)")
                 maskedimage = np.ma.array(self.image[i,:,:],mask = np.isnan(self.image[i,:,:]))
-                print("    average(masked)= ", np.ma.average(maskedimage), "  max= ", np.ma.max(maskedimage))
+                ave = np.ma.average(maskedimage)
+                print("    average(masked)= ", ave, "  max= ", np.ma.max(maskedimage))
             else:
-                print("img ", i, " ", carInf.filterMaterial[i]," ", carInf.filterWidth[i], " average= ",
-                      np.average(self.image[i,:,:]))
+                ave = np.average(self.image[i,:,:])
+                print("img ", i, " ", carInf.materialTypes[i]," ", carInf.sampWidth[i], " average= ",ave)
+            minmu = np.min(carInf.filterAtt[i].getMu()[min10:max1])
+            maxmu = np.max(carInf.filterAtt[i].getMu()[min10:max1])
+            maxatt = maxmu*carInf.sampWidth[i]
+            minatt = minmu*carInf.sampWidth[i]
+            print("    minatt = ",minatt,"  maxatt = ",maxatt)
+            if ave<minatt or ave>maxatt:
+                print("    *** Warning: Attenuation of sample outside expected bounds!")
 
     def __setAverages(self):
         """ pre compute mean centre of each image row

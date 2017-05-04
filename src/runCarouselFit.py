@@ -73,6 +73,8 @@ def loadAll(string):
         vary[4:] = 0
     if not xSpec.isValid():
         sys.exit("** failed to load spectrum")
+    print(" Checking sample attenuation is in expected range:")
+    carouselCal.printImageStats(carouselData)
 
 
 def showImg(string):
