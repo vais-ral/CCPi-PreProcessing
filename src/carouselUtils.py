@@ -549,7 +549,6 @@ class fitData(object):
         # make space for default values to use if vary==-1
         self.defaults = np.zeros(4)
         #
-        self.nlines = 0
         # since there may be several filters, define which one should vary
         self.vary_filter_name="Cu"
         self.verbose = False
