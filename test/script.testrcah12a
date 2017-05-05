@@ -1,0 +1,23 @@
+# test fit file for rcah data
+# First read carousel definition and data files
+load carouselData/carouselrcah12.def carouselData/runrcah12.data
+# show the initial data; note the plot must be closed before the
+# calculation will procede at present.
+# showimg
+# set the target material; this must be defined by running xcom
+# beforehand.
+setcormat olivine 35.
+# define the order of polynomials (in line number) to use for fitting
+# the data.
+vary target 0
+vary detector -1
+vary filter 0
+vary energy -1
+# Ignore all by first 7 Al samples
+mask 8 9 10 11 12
+# fit to first 20 lines of data
+fitatt 20
+# allow variation of filter width with line number
+vary filter 1
+# fit over half the data, using only every 100th line
+fitatt 1000 100
