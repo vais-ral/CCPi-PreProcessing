@@ -1,0 +1,16 @@
+# data for one calibration run
+35 		# voltage was 35
+22		# guess at take off angle
+W		# target material
+19.25           # target density
+1000		# image res rows
+200		# image res lines
+carouselData/imgs35kev.raw		# image file
+uint16_65535		# data type in image file, with white level 65535
+1		# number of filters
+Cu              # filter material
+0.001           # filter width - virtual filter for fitting purposes
+8.92            # filter density
+CsI		# detector material
+0.01		# starting value for detector thickness
+4.51		# detector density
