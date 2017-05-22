@@ -413,9 +413,10 @@ def fitAtt(string):
     print("dofit returned: ")
     print(" best fit values = ",res)
     if ier>0 and ier<5:
-        print(" ier = ",ier)
+        print(" ret = ",ier)
     else:
-        print("** Fit failed: ier=",ier)
+        # While fit not fully converged, result may still be OK
+        print("   Fit warning: ret=",ier)
         print("   message=",mesg)
     print(" iterations = ",infodict["nfev"])
     # measure error
