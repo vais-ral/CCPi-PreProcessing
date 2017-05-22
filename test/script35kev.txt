@@ -1,0 +1,8 @@
+load carouselData/crown35kev.def carouselData/rcah35kev.data
+setcormat CaCO3 20.
+vary detector -1
+vary target 0
+vary filter 0
+mask 8 9 10 11 12
+fitatt 200 10
+showcor
