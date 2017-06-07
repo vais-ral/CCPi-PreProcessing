@@ -1,0 +1,12 @@
+# this is a carousel definition file based on data from RCaH MP - 12 materials. 27/4/17
+13
+Al,Al,Al,Al,Al,Al,Al,Cu,glass,Sn,Ti,Ti,Nothing
+2.698,2.698,2.698,2.698,2.698,2.698,2.698,8.92,2.464,7.365,4.506,4.506,0
+.01,.005,.05,.025,0.1,0.2,0.3,0.2,0.1773,0.1,0.2,0.35,1
+
+
+Cu,Cu,Sn,Sn,Al,Al,olivine,basalt,basalt,basalt,glass,glass,glass,glass,Al,Al,Al,Nothing
+8.92,8.92,7.365,7.365,2.698,2.698,3.27,2.9096,2.9096,2.9096,2.464,2.464,2.464,2.464,2.698,2.698,2.698,1
+0.025,0.01,0.025,0.01,0.05,0.1,.109,.142,.128,0.0855,.1773,.141,.128,0.019,0.025,0.01,0.005,0
+0.25,0.1,0.25,0.1,0.5,1,1.09,1.42,1.28,0.855,1.773,1.41,1.28,0.19,0.25,0.1,0.05,0
+# above density values include ones used in previous code (Cu,Al), wikipedia(Sn) and MP.

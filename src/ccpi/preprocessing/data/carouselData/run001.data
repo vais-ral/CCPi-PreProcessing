@@ -1,0 +1,19 @@
+# data for one calibration run
+80 		# voltage (KeV)
+22		# angle (deg)
+W		# target material
+19.25           # target density (g/cm^3)
+600		# image res rows
+800		# image res lines
+carouselData/run001.img		# image file
+float32		# data type in image file
+2		# number of filters
+Al		# filter material
+0.12		# filter width (cm)
+2.698		# filter density
+Cu		# filter material
+0.1		# filter width - 0.1
+8.92		# filter density
+CsI		# detector material
+0.01		# starting value for detector thickness
+4.51		# detector density

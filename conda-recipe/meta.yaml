@@ -1,0 +1,22 @@
+package:
+    name: ccpi-preprocessing
+    version: "0.1"
+    
+build:
+    preserve_egg_dir: True
+
+requirements:
+    build:
+        - python
+        - numpy
+        - scipy
+        - matplotlib
+    run:
+        - python
+        - numpy
+        - scipy
+        - matplotlib
+        
+about:
+    home: http://www.ccpi.ac.uk
+    summary: 'CCPi Core Imaging Library (Preprocessing)'
