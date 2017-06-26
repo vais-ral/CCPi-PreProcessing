@@ -1,9 +1,9 @@
 package:
     name: ccpi-preprocessing
-    version: "0.1"
+    version: "0.9"
     
 build:
-    preserve_egg_dir: True
+    preserve_egg_dir: False
 
 requirements:
     build:

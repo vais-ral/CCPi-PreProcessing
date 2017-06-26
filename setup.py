@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
      name = 'ccpi-preprocessing',
-	 version = '0.1',
+	 version = '0.9',
 	 description = 'CCPi Core Imaging Library - Preprocessing Module',
 	 author='Dr. Ronald Fowler',
 	 license='GPL',
