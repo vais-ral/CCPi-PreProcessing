@@ -42,7 +42,7 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     sys.exit("Error: cant find matplotlib")
-import carouselUtils as cu
+from . import carouselUtils as cu
 import pdb
 
 markerErr = it.cycle((',', '+', '.', 'o', '*'))
