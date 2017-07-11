@@ -1,0 +1,29 @@
+# Example of fitting using data set from QMUL
+# First read carousel definition and data files
+load carouselData/carousel0.def carouselData/run001.data
+# show the initial data; note the plot must be closed before the
+# calculation will procede at present.
+showimg
+# set the target material; this must be defined by running xcom
+# beforehand. In this case we use Calcium Hydroxylapatite, a bone like mineral
+# Since the data was take with peak energy of 80KeV correction is done on 40KeV
+# as an approximation of the mean beam energy.
+setcormat CaHydro 40.
+# define the order of polynomials (in line number) to use for fitting
+# the data. The detector width is not varied (-1), while linear variation is
+# allowed for the target and the filter(1).
+vary target 1
+vary detector -1
+vary filter 1
+# fit the model across the whole 800 lines, but only using every 20th line
+# for speed.
+fitatt 800 20
+# plot the correction curves for the bottom, middle and top lines
+showcor
+# Now do the same fit but with no variation of target and filter widths
+# with the line number.
+vary target 0
+vary filter 0
+fitatt 800 20
+# plot the correction curve for this case
+showcor
