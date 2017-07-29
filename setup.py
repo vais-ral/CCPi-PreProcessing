@@ -1,8 +1,14 @@
 from setuptools import setup, find_packages
+import os
+
+cil_version=os.environ['CIL_VERSION']
+if  cil_version == '':
+    print("Please set the environmental variable CIL_VERSION")
+    sys.exit(1)
 
 setup(
      name = 'ccpi-preprocessing',
-	 version = '0.9',
+	 version = cil_version,
 	 description = 'CCPi Core Imaging Library - Preprocessing Module',
 	 author='Dr. Ronald Fowler',
 	 license='GPL',
