@@ -1,10 +1,11 @@
 package:
     name: ccpi-preprocessing
-    version: "0.9"
+    version: {{ environ['CIL_VERSION'] }}
     
 build:
     preserve_egg_dir: False
-
+    script_env:
+      - CIL_VERSION 
 requirements:
     build:
         - python
