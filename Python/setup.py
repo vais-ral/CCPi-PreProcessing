@@ -12,14 +12,14 @@ setup(
 	 description = 'CCPi Core Imaging Library - Preprocessing Module',
 	 author='Dr. Ronald Fowler',
 	 license='GPL',
-	 packages=['ccpi','ccpi.preprocessing'],
+	 packages=['ccpi','ccpi.preprocessing','ccpi.preprocessing.beamhardening'],
      install_requires=['numpy','scipy','matplotlib'],
-     package_dir={'':'src'},
+     package_dir={'':''},
 	zip_safe = False,
-     package_data={'ccpi.preprocessing':['data/xcom/*.txt','data/spectra/Mo/*.spc','data/carouselData/*',]},
+     package_data={'ccpi.preprocessing.beamhardening':['data/xcom/*.txt','data/spectra/Mo/*.spc','data/carouselData/*',]},
 	 entry_points={
 					'console_scripts': [
-										'CarouselFit=ccpi.preprocessing.runCarouselFit:main'
+										'CarouselFit=ccpi.preprocessing.beamhardening.runCarouselFit:main'
 									   ],
 				  },
 	 )
