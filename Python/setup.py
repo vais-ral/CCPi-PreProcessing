@@ -14,7 +14,6 @@ setup(
 	 license='GPL',
 	 packages=['ccpi','ccpi.preprocessing','ccpi.preprocessing.beamhardening'],
      install_requires=['numpy','scipy','matplotlib'],
-     package_dir={'':''},
 	zip_safe = False,
      package_data={'ccpi.preprocessing.beamhardening':['data/xcom/*.txt','data/spectra/Mo/*.spc','data/carouselData/*',]},
 	 entry_points={
