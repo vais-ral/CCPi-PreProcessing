@@ -12,6 +12,8 @@ requirements:
         - numpy
         - scipy
         - matplotlib
+        - cython
+        - pytz
     run:
         - python
         - numpy
