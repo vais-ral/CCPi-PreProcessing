@@ -28,7 +28,7 @@ else:
     
 extensions = [
     Extension("ccpi.preprocessing.limited_angle.padding", 
-              sources = ["src/LimitedAngleCT/padding.pyx","../Core/LimitedAngleCT/SinoConePad.c"],
+              sources = ["src/LimitedAngleCT/padding.pyx","../../Core/LimitedAngleCT/SinoConePad.c"],
               include_dirs = extra_include_dirs,
               library_dirs = extra_library_dirs,
               extra_compile_args = extra_compile_args,
