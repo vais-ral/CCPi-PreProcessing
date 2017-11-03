@@ -19,6 +19,7 @@ requirements:
         - numpy
         - scipy
         - matplotlib
+        - pytz
         
 about:
     home: http://www.ccpi.ac.uk
