@@ -3,5 +3,5 @@ if [ -z "$CIL_VERSION" ]; then
     exit 1
 fi  
 cp -r "${RECIPE_DIR}/../../../" ${SRC_DIR}
-cd ${SRC_DIR}/Python
+cd ${SRC_DIR}/Wrappers/Python
 $PYTHON setup.py install
