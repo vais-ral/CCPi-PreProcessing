@@ -15,6 +15,7 @@ requirements:
         - cython
         - pytz
         - certifi
+        - setuptools
     run:
         - python
         - numpy
@@ -22,6 +23,7 @@ requirements:
         - matplotlib
         - pytz
         - certifi
+        - setuptools
         
 about:
     home: http://www.ccpi.ac.uk
