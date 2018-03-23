@@ -14,12 +14,14 @@ requirements:
         - matplotlib
         - cython
         - pytz
+        - certifi
     run:
         - python
         - numpy
         - scipy
         - matplotlib
         - pytz
+        - certifi
         
 about:
     home: http://www.ccpi.ac.uk
