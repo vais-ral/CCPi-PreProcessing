@@ -536,7 +536,7 @@ class carouselCalibrationData(object):
             maskedimage = np.ma.array(z, mask = np.isnan(z))
             zmax = np.max(maskedimage)
             zzmax = max(zmax, zzmax)
-            plt.subplot(pltgrid, pltgrid, isam+1, axisbg='y')
+            plt.subplot(pltgrid, pltgrid, isam+1, facecolor='y')
             plt.imshow(maskedimage, cmap='RdBu', vmin = 0, vmax = zzmax,
                        aspect='auto')
             plt.draw()
@@ -554,7 +554,7 @@ class carouselCalibrationData(object):
             pltgrid = 4
             nsample = max(self.samples)
         for isam in range(nsample):
-            plt.subplot(pltgrid, pltgrid, isam+1, axisbg = 'y')
+            plt.subplot(pltgrid, pltgrid, isam+1, facecolor = 'y')
 
 
 
