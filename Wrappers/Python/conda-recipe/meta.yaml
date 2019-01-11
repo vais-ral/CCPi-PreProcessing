@@ -9,7 +9,7 @@ build:
 requirements:
     build:
         - python
-        - numpy
+        - numpy {{ numpy }}
         - scipy
         - matplotlib >=2
         - cython
