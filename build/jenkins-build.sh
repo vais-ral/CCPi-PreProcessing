@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 if [[ -n ${CIL_VERSION} ]]
 then
   echo Using defined version: $CIL_VERSION
